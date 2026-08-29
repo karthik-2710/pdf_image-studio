@@ -1,0 +1,22 @@
+Custom Freeware and Non-Derivative License
+
+Copyright (c) 2026 Karthik.G. All rights reserved.
+
+Terms and Conditions for Use:
+
+1. Grant of License
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to view the source code and run the Software for personal, educational, or commercial use, subject to the restrictions below.
+
+2. Restrictions on Modification and Derivatives
+You shall not modify, alter, adapt, transform, or build upon the Software or any portion thereof. You shall not create derivative works based upon the Software.
+
+3. Restrictions on Distribution and Repository Clones
+You shall not redistribute, publish, sublicense, rent, lease, or lend the Software. You are strictly prohibited from copying the source code to host, mirror, or publish it as your own independent repository on GitHub or any other code-hosting platform. 
+
+4. GitHub Platform Exception
+As a platform condition of GitHub, you are permitted to "fork" this repository solely within the GitHub ecosystem for personal tracking or contributing upstream pull requests to the original repository. Such forks must remain non-modified and must preserve this exact license file.
+
+5. Termination
+Any breach of these terms immediately and automatically terminates your permission to use the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
