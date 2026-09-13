@@ -8,9 +8,17 @@ A fast, modern, and easy-to-use desktop application to convert **Images to PDF**
 
 ### 🖼️ Images to PDF Converter
 - **Multi-Format Support**: JPG, JPEG, PNG, WEBP, BMP, TIFF, GIF, and more.
+- **Windows Orientation Parity**: Automatically evaluates and respects EXIF orientation tags from Windows File Explorer and phone cameras.
+- **1-Click In-App Rotation (`↺` / `↻`)**: Quick-rotate any individual image or batch rotate selected images directly from the card and toolbar, updating thumbnails and files on disk.
+- **In-App Image Editor (`🎨 Edit`)**:
+  - Rotate (90° CCW, 90° CW, 180°) and Flip (Horizontal / Vertical).
+  - Crop / Trim margins with interactive sliders.
+  - Brightness, Contrast, and Sharpness enhancement sliders.
+  - Document Scan / High-Contrast Black & White filter for crisp text documents and receipts.
+  - **Save & Overwrite Original File** (reflects directly in your Windows folders) or **Save as New Copy**.
 - **Visual Image Queue**: High-resolution thumbnails with image resolution, color mode, and file size badges.
 - **Drag & Reorder**: Move pages up/down (`▲`/`▼`), reverse order, or sort alphabetically/by date/by size.
-- **Preview Inspector (`👁`)**: Double-click or click Preview to view images in full resolution with complete metadata.
+- **Preview Inspector (`👁`)**: View full-resolution previews with EXIF parity, metadata, and quick rotate/edit tools.
 - **Rename Options (`✏️`)**:
   - In-place single file renaming on disk.
   - Powerful **Batch Rename (`🏷`)** tool with Sequential Numbering (`img_001.jpg`), Prefix/Suffix, Find & Replace, and real-time preview table.
@@ -21,7 +29,12 @@ A fast, modern, and easy-to-use desktop application to convert **Images to PDF**
   - **Page Sizes**: Fit to Image (Original Pixels), A4, US Letter, A3, A5.
   - **Orientation**: Auto (Matches image aspect ratio), Portrait, Landscape.
   - **Margins**: None (Edge-to-Edge), Small (0.25 in), Normal (0.5 in), Large (0.75 in).
-  - **Quality / Compression**: Lossless (Original PNG/JPEG), High Quality (JPEG 90), Medium (JPEG 75), Low/Web Size (JPEG 50).
+  - **Quality / Compression**:
+    - **Extreme Compression (80-95% Smaller)**: Smart Lanczos downsampling (1600px max) + JPEG 38 + Progressive chroma subsampling + PDF stream deflation. Retains clear, readable text and crisp images while producing tiny PDFs.
+    - **Ultra Compact / Email**: Maximum compression (1200px max, JPEG 28) for the smallest possible file sizes.
+    - **High Quality (JPEG 90)** / **Medium (JPEG 75)** / **Low (JPEG 50)**.
+    - **Lossless (Original / PNG)**.
+  - **Max Image Resolution / Downscaling**: Auto, Full HD (1920px), Compact (1600px), Mobile/Web (1280px), Ultra Small (1024px), or Original Pixels.
 - **Single or Batch Mode**: Combine all images into a single PDF or export each image as an individual PDF.
 
 ### 📄 PDF to Images Converter

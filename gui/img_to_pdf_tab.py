@@ -9,6 +9,7 @@ from core.file_manager import (
     is_valid_image_file,
     get_image_metadata,
     safe_delete_file,
+    rotate_image_file_on_disk,
     SUPPORTED_IMAGE_EXTENSIONS
 )
 from core.img_to_pdf import (
@@ -18,6 +19,7 @@ from core.img_to_pdf import (
 from gui.components.item_card import ItemCard
 from gui.components.preview_modal import PreviewModal
 from gui.components.rename_modal import SingleRenameModal, BatchRenameModal
+from gui.components.editor_modal import EditorModal
 
 
 class ImgToPdfTab(ctk.CTkFrame):
@@ -50,18 +52,18 @@ class ImgToPdfTab(ctk.CTkFrame):
         btn_add_files = ctk.CTkButton(
             toolbar,
             text="➕ Add Images",
-            width=115,
+            width=110,
             height=32,
             font=ctk.CTkFont(size=12, weight="bold"),
             fg_color=("#3a7ebf", "#1f538d"),
             command=self._choose_images
         )
-        btn_add_files.pack(side="left", padx=(10, 5), pady=8)
+        btn_add_files.pack(side="left", padx=(10, 4), pady=8)
 
         btn_add_folder = ctk.CTkButton(
             toolbar,
             text="📁 Add Folder",
-            width=110,
+            width=100,
             height=32,
             font=ctk.CTkFont(size=12),
             fg_color=("gray75", "gray28"),
@@ -69,56 +71,81 @@ class ImgToPdfTab(ctk.CTkFrame):
             hover_color=("gray65", "gray38"),
             command=self._choose_folder
         )
-        btn_add_folder.pack(side="left", padx=5, pady=8)
+        btn_add_folder.pack(side="left", padx=3, pady=8)
+
+        # Rotate Quick Action Buttons for selected
+        btn_rot_ccw_all = ctk.CTkButton(
+            toolbar,
+            text="↺ Rotate Left",
+            width=95,
+            height=32,
+            font=ctk.CTkFont(size=11),
+            fg_color=("gray75", "gray28"),
+            text_color=("gray10", "gray95"),
+            command=lambda: self._rotate_selected_images(270)
+        )
+        btn_rot_ccw_all.pack(side="left", padx=3, pady=8)
+
+        btn_rot_cw_all = ctk.CTkButton(
+            toolbar,
+            text="↻ Rotate Right",
+            width=100,
+            height=32,
+            font=ctk.CTkFont(size=11),
+            fg_color=("gray75", "gray28"),
+            text_color=("gray10", "gray95"),
+            command=lambda: self._rotate_selected_images(90)
+        )
+        btn_rot_cw_all.pack(side="left", padx=3, pady=8)
 
         btn_batch_rename = ctk.CTkButton(
             toolbar,
             text="🏷 Batch Rename",
-            width=120,
+            width=110,
             height=32,
-            font=ctk.CTkFont(size=12),
+            font=ctk.CTkFont(size=11),
             fg_color=("#e0a800", "#b38600"),
             text_color="black",
             hover_color=("#cc9800", "#997300"),
             command=self._open_batch_rename
         )
-        btn_batch_rename.pack(side="left", padx=5, pady=8)
+        btn_batch_rename.pack(side="left", padx=3, pady=8)
 
         # Selection controls
         btn_select_all = ctk.CTkButton(
             toolbar,
             text="Select All",
-            width=80,
+            width=75,
             height=32,
             font=ctk.CTkFont(size=11),
             fg_color=("gray75", "gray28"),
             text_color=("gray10", "gray95"),
             command=lambda: self._set_all_selected(True)
         )
-        btn_select_all.pack(side="left", padx=3, pady=8)
+        btn_select_all.pack(side="left", padx=2, pady=8)
 
         btn_deselect_all = ctk.CTkButton(
             toolbar,
             text="Deselect All",
-            width=85,
+            width=80,
             height=32,
             font=ctk.CTkFont(size=11),
             fg_color=("gray75", "gray28"),
             text_color=("gray10", "gray95"),
             command=lambda: self._set_all_selected(False)
         )
-        btn_deselect_all.pack(side="left", padx=3, pady=8)
+        btn_deselect_all.pack(side="left", padx=2, pady=8)
 
         # Sort Dropdown
-        ctk.CTkLabel(toolbar, text="Sort:", font=ctk.CTkFont(size=12)).pack(side="left", padx=(10, 4))
+        ctk.CTkLabel(toolbar, text="Sort:", font=ctk.CTkFont(size=11)).pack(side="left", padx=(6, 2))
         self.sort_menu = ctk.CTkOptionMenu(
             toolbar,
             values=["Name (A-Z)", "Name (Z-A)", "Date (Newest)", "Date (Oldest)", "Size (Largest)", "Reverse Order"],
-            width=135,
+            width=125,
             height=30,
             command=self._sort_queue
         )
-        self.sort_menu.pack(side="left", padx=3, pady=8)
+        self.sort_menu.pack(side="left", padx=2, pady=8)
 
         # Right utility buttons
         btn_clear = ctk.CTkButton(
@@ -230,10 +257,33 @@ class ImgToPdfTab(ctk.CTkFrame):
         ctk.CTkLabel(settings_panel, text="Image Quality / Compression:", font=ctk.CTkFont(size=12, weight="bold")).pack(anchor="w", padx=10, pady=(4, 2))
         self.opt_quality = ctk.CTkOptionMenu(
             settings_panel,
-            values=["Lossless (Original / PNG)", "High Quality (JPEG 90)", "Medium Quality (JPEG 75)", "Low / Web Size (JPEG 50)"]
+            values=[
+                "Extreme Compression (Tiny Size • Crisp Text)",
+                "Ultra Compact / Email (Smallest Size • Max Compression)",
+                "High Quality (JPEG 90 - Standard)",
+                "Medium Quality (JPEG 75)",
+                "Low / Web Size (JPEG 50)",
+                "Lossless (Original Quality / No Compression)"
+            ]
         )
-        self.opt_quality.set("High Quality (JPEG 90)")
-        self.opt_quality.pack(fill="x", padx=10, pady=(0, 12))
+        self.opt_quality.set("High Quality (JPEG 90 - Standard)")
+        self.opt_quality.pack(fill="x", padx=10, pady=(0, 10))
+
+        # Max Resolution / Downscaling Control
+        ctk.CTkLabel(settings_panel, text="Max Image Resolution:", font=ctk.CTkFont(size=12, weight="bold")).pack(anchor="w", padx=10, pady=(4, 2))
+        self.opt_max_dim = ctk.CTkOptionMenu(
+            settings_panel,
+            values=[
+                "Auto (Based on Quality Preset)",
+                "Full HD (Max 1920 px)",
+                "Compact (Max 1600 px)",
+                "Mobile / Web (Max 1280 px)",
+                "Ultra Small (Max 1024 px)",
+                "Original Pixels (No Downscaling)"
+            ]
+        )
+        self.opt_max_dim.set("Auto (Based on Quality Preset)")
+        self.opt_max_dim.pack(fill="x", padx=10, pady=(0, 12))
 
         # PDF Document Title
         ctk.CTkLabel(settings_panel, text="Document Title (Metadata):", font=ctk.CTkFont(size=12, weight="bold")).pack(anchor="w", padx=10, pady=(4, 2))
@@ -408,6 +458,9 @@ class ImgToPdfTab(ctk.CTkFrame):
                 on_move_up=self._on_item_move_up,
                 on_move_down=self._on_item_move_down,
                 on_rename=self._on_item_rename,
+                on_rotate_cw=self._on_item_rotate_cw,
+                on_rotate_ccw=self._on_item_rotate_ccw,
+                on_edit=self._on_item_edit,
                 on_remove=self._on_item_remove,
                 on_delete=self._on_item_delete
             )
@@ -427,7 +480,62 @@ class ImgToPdfTab(ctk.CTkFrame):
             current_idx = self.images_queue.index(item_data)
         except ValueError:
             current_idx = 0
-        PreviewModal(self, items=self.images_queue, current_index=current_idx, is_pdf_page=False)
+        PreviewModal(
+            self,
+            items=self.images_queue,
+            current_index=current_idx,
+            is_pdf_page=False,
+            on_item_updated=lambda updated: self._refresh_queue_ui()
+        )
+
+    def _on_item_rotate_cw(self, item_data: Dict[str, Any]):
+        file_path = item_data.get("path", "")
+        try:
+            rotate_image_file_on_disk(file_path, 90)
+            meta = get_image_metadata(file_path)
+            item_data.update(meta)
+            self._refresh_queue_ui()
+            self._update_status(f"Rotated '{item_data.get('filename')}' 90° Clockwise.")
+        except Exception as e:
+            messagebox.showerror("Rotation Failed", f"Could not rotate image file:\n{e}")
+
+    def _on_item_rotate_ccw(self, item_data: Dict[str, Any]):
+        file_path = item_data.get("path", "")
+        try:
+            rotate_image_file_on_disk(file_path, 270)
+            meta = get_image_metadata(file_path)
+            item_data.update(meta)
+            self._refresh_queue_ui()
+            self._update_status(f"Rotated '{item_data.get('filename')}' 90° Counter-Clockwise.")
+        except Exception as e:
+            messagebox.showerror("Rotation Failed", f"Could not rotate image file:\n{e}")
+
+    def _on_item_edit(self, item_data: Dict[str, Any]):
+        EditorModal(self, item_data=item_data, on_save_callback=self._on_item_edited)
+
+    def _on_item_edited(self, updated_item: Dict[str, Any], edited_img):
+        self._refresh_queue_ui()
+        self._update_status(f"Updated '{updated_item.get('filename')}' on disk.")
+
+    def _rotate_selected_images(self, degrees: int):
+        selected = [item for item in self.images_queue if item.get("selected", True)]
+        if not selected:
+            messagebox.showwarning("No Selection", "Please select at least one image to rotate.")
+            return
+
+        success_count = 0
+        for item in selected:
+            try:
+                rotate_image_file_on_disk(item["path"], degrees % 360)
+                meta = get_image_metadata(item["path"])
+                item.update(meta)
+                success_count += 1
+            except Exception:
+                pass
+
+        self._refresh_queue_ui()
+        direction_name = "Right (90° CW)" if (degrees % 360) == 90 else "Left (90° CCW)"
+        self._update_status(f"Rotated {success_count} image(s) {direction_name} and saved to disk.")
 
     def _on_item_move_up(self, index: int):
         if index > 0:
@@ -572,12 +680,25 @@ class ImgToPdfTab(ctk.CTkFrame):
 
         qual_label = self.opt_quality.get()
         qual_map = {
-            "Lossless (Original / PNG)": "lossless",
-            "High Quality (JPEG 90)": "high",
+            "Extreme Compression (Tiny Size • Crisp Text)": "extreme",
+            "Ultra Compact / Email (Smallest Size • Max Compression)": "ultra_extreme",
+            "High Quality (JPEG 90 - Standard)": "high",
             "Medium Quality (JPEG 75)": "medium",
-            "Low / Web Size (JPEG 50)": "low"
+            "Low / Web Size (JPEG 50)": "low",
+            "Lossless (Original Quality / No Compression)": "lossless"
         }
         quality = qual_map.get(qual_label, "high")
+
+        dim_label = self.opt_max_dim.get()
+        dim_map = {
+            "Auto (Based on Quality Preset)": None,
+            "Full HD (Max 1920 px)": 1920,
+            "Compact (Max 1600 px)": 1600,
+            "Mobile / Web (Max 1280 px)": 1280,
+            "Ultra Small (Max 1024 px)": 1024,
+            "Original Pixels (No Downscaling)": None
+        }
+        custom_max_dim = dim_map.get(dim_label, None)
         doc_title = self.entry_doc_title.get().strip()
 
         img_paths = [item["path"] for item in selected_items]
@@ -602,6 +723,7 @@ class ImgToPdfTab(ctk.CTkFrame):
                         orientation=orientation,
                         margin=margin,
                         quality=quality,
+                        custom_max_dim=custom_max_dim,
                         title=doc_title,
                         progress_callback=self._async_progress,
                         cancel_event=self.cancel_event
@@ -616,6 +738,7 @@ class ImgToPdfTab(ctk.CTkFrame):
                         orientation=orientation,
                         margin=margin,
                         quality=quality,
+                        custom_max_dim=custom_max_dim,
                         progress_callback=self._async_progress,
                         cancel_event=self.cancel_event
                     )

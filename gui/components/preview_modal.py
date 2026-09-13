@@ -1,15 +1,17 @@
 import os
+from tkinter import messagebox
 import customtkinter as ctk
 from PIL import Image
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Callable
 import pymupdf as fitz
 
-from core.file_manager import get_image_metadata, get_pdf_metadata
+from core.file_manager import get_image_metadata, get_pdf_metadata, load_image_with_exif, rotate_image_file_on_disk
 
 
 class PreviewModal(ctk.CTkToplevel):
     """
-    Full-size image & PDF page inspector modal with zoom preview and detailed metadata.
+    Full-size image & PDF page inspector modal with zoom preview, detailed metadata,
+    and quick rotation & editing tools.
     """
 
     def __init__(
@@ -17,16 +19,18 @@ class PreviewModal(ctk.CTkToplevel):
         parent,
         items: List[Dict[str, Any]],
         current_index: int = 0,
-        is_pdf_page: bool = False
+        is_pdf_page: bool = False,
+        on_item_updated: Optional[Callable[[Dict[str, Any]], None]] = None
     ):
         super().__init__(parent)
         self.items = items
         self.current_index = max(0, min(current_index, len(items) - 1))
         self.is_pdf_page = is_pdf_page
+        self.on_item_updated = on_item_updated
 
         self.title("🔍 Preview Inspector - Image & PDF Studio")
-        self.geometry("960x700")
-        self.minsize(750, 550)
+        self.geometry("980x720")
+        self.minsize(780, 560)
 
         # Center on parent
         self.transient(parent)
@@ -49,16 +53,25 @@ class PreviewModal(ctk.CTkToplevel):
         # 1. Header Bar
         header = ctk.CTkFrame(self, height=50, corner_radius=0, fg_color=("gray85", "gray17"))
         header.grid(row=0, column=0, sticky="ew")
-        header.grid_columnconfigure(1, weight=1)
+        header.grid_columnconfigure(2, weight=1)
 
         self.btn_prev = ctk.CTkButton(
             header,
             text="◀ Previous",
-            width=90,
+            width=85,
             height=32,
             command=self._prev_item
         )
-        self.btn_prev.grid(row=0, column=0, padx=12, pady=8)
+        self.btn_prev.grid(row=0, column=0, padx=(10, 4), pady=8)
+
+        self.btn_next = ctk.CTkButton(
+            header,
+            text="Next ▶",
+            width=85,
+            height=32,
+            command=self._next_item
+        )
+        self.btn_next.grid(row=0, column=1, padx=4, pady=8)
 
         self.title_label = ctk.CTkLabel(
             header,
@@ -66,16 +79,40 @@ class PreviewModal(ctk.CTkToplevel):
             font=ctk.CTkFont(size=14, weight="bold"),
             anchor="center"
         )
-        self.title_label.grid(row=0, column=1, padx=10, pady=8, sticky="ew")
+        self.title_label.grid(row=0, column=2, padx=10, pady=8, sticky="ew")
 
-        self.btn_next = ctk.CTkButton(
-            header,
-            text="Next ▶",
-            width=90,
-            height=32,
-            command=self._next_item
-        )
-        self.btn_next.grid(row=0, column=2, padx=12, pady=8)
+        # Quick rotate and edit buttons for images
+        if not self.is_pdf_page:
+            btn_rot_l = ctk.CTkButton(
+                header,
+                text="↺ 90°",
+                width=55,
+                height=32,
+                font=ctk.CTkFont(size=12),
+                command=lambda: self._quick_rotate(-90)
+            )
+            btn_rot_l.grid(row=0, column=3, padx=3, pady=8)
+
+            btn_rot_r = ctk.CTkButton(
+                header,
+                text="↻ 90°",
+                width=55,
+                height=32,
+                font=ctk.CTkFont(size=12),
+                command=lambda: self._quick_rotate(90)
+            )
+            btn_rot_r.grid(row=0, column=4, padx=3, pady=8)
+
+            btn_edit = ctk.CTkButton(
+                header,
+                text="🎨 Edit...",
+                width=75,
+                height=32,
+                font=ctk.CTkFont(size=12, weight="bold"),
+                fg_color=("#0288d1", "#0277bd"),
+                command=self._open_editor
+            )
+            btn_edit.grid(row=0, column=5, padx=(3, 10), pady=8)
 
         # 2. Main Viewport (Image Canvas / Label)
         self.viewport_frame = ctk.CTkFrame(self, fg_color=("gray95", "gray12"), corner_radius=8)
@@ -114,6 +151,34 @@ class PreviewModal(ctk.CTkToplevel):
         if self.current_index < len(self.items) - 1:
             self.current_index += 1
             self._load_current_item()
+
+    def _quick_rotate(self, degrees: int):
+        if self.is_pdf_page or not self.items:
+            return
+        item = self.items[self.current_index]
+        file_path = item.get("path", "")
+        try:
+            rotate_image_file_on_disk(file_path, (degrees % 360))
+            meta = get_image_metadata(file_path)
+            item.update(meta)
+            self._load_current_item()
+            if self.on_item_updated:
+                self.on_item_updated(item)
+        except Exception as e:
+            messagebox.showerror("Rotate Failed", f"Could not rotate image file:\n{e}")
+
+    def _open_editor(self):
+        if self.is_pdf_page or not self.items:
+            return
+        from gui.components.editor_modal import EditorModal
+        item = self.items[self.current_index]
+        
+        def on_saved(updated_item, edited_img):
+            self._load_current_item()
+            if self.on_item_updated:
+                self.on_item_updated(updated_item)
+
+        EditorModal(self, item_data=item, on_save_callback=on_saved)
 
     def _load_current_item(self):
         if not self.items or self.current_index >= len(self.items):
@@ -167,19 +232,19 @@ class PreviewModal(ctk.CTkToplevel):
 
             try:
                 meta = get_image_metadata(file_path)
-                with Image.open(file_path) as full_img:
-                    # Convert for safe viewing
-                    display_img = full_img.copy()
-                    if display_img.mode not in ('RGB', 'RGBA'):
-                        display_img = display_img.convert('RGBA')
+                full_img = load_image_with_exif(file_path)
+                # Convert for safe viewing
+                display_img = full_img.copy()
+                if display_img.mode not in ('RGB', 'RGBA'):
+                    display_img = display_img.convert('RGBA')
 
-                    display_img.thumbnail((880, 520), Image.Resampling.LANCZOS)
-                    self.preview_ctk_img = ctk.CTkImage(
-                        light_image=display_img,
-                        dark_image=display_img,
-                        size=(display_img.width, display_img.height)
-                    )
-                    self.image_label.configure(image=self.preview_ctk_img, text="")
+                display_img.thumbnail((880, 520), Image.Resampling.LANCZOS)
+                self.preview_ctk_img = ctk.CTkImage(
+                    light_image=display_img,
+                    dark_image=display_img,
+                    size=(display_img.width, display_img.height)
+                )
+                self.image_label.configure(image=self.preview_ctk_img, text="")
 
                 self.meta_dim.configure(text=f"Resolution: {meta['dimensions']} px")
                 self.meta_size.configure(text=f"Size: {meta['size_formatted']}")

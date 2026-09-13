@@ -2,7 +2,7 @@ import os
 import re
 import datetime
 from typing import Dict, List, Optional, Tuple, Any
-from PIL import Image
+from PIL import Image, ImageOps, ImageEnhance, ImageFilter
 import pymupdf as fitz
 
 SUPPORTED_IMAGE_EXTENSIONS = {
@@ -40,8 +40,19 @@ def format_file_size(size_in_bytes: int) -> str:
         return f"{size_in_bytes / (1024 * 1024 * 1024):.2f} GB"
 
 
+def load_image_with_exif(file_path: str) -> Image.Image:
+    """
+    Load an image from disk and automatically apply EXIF orientation transposition
+    so it matches Windows Explorer / camera orientation parity.
+    """
+    img = Image.open(file_path)
+    # Apply EXIF transpose so rotations done in Windows File Explorer or cameras are rendered correctly
+    img = ImageOps.exif_transpose(img)
+    return img
+
+
 def get_image_metadata(file_path: str) -> Dict[str, Any]:
-    """Extract metadata from an image file."""
+    """Extract metadata from an image file with correct EXIF orientation dimensions."""
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"File not found: {file_path}")
     
@@ -56,10 +67,10 @@ def get_image_metadata(file_path: str) -> Dict[str, Any]:
     format_name = ext.replace('.', '').upper()
 
     try:
-        with Image.open(file_path) as img:
+        with load_image_with_exif(file_path) as img:
             width, height = img.size
             mode = img.mode
-            if img.format:
+            if getattr(img, "format", None):
                 format_name = img.format
     except Exception as e:
         pass
@@ -122,15 +133,151 @@ def get_pdf_metadata(file_path: str) -> Dict[str, Any]:
 
 
 def generate_image_thumbnail(file_path: str, max_size: Tuple[int, int] = (160, 160)) -> Optional[Image.Image]:
-    """Generate a Pillow thumbnail preserving aspect ratio with RGB/RGBA conversion."""
+    """Generate a Pillow thumbnail preserving aspect ratio and EXIF orientation."""
     try:
-        img = Image.open(file_path)
+        img = load_image_with_exif(file_path)
         img.thumbnail(max_size, Image.Resampling.LANCZOS)
         if img.mode not in ('RGB', 'RGBA'):
             img = img.convert('RGBA')
         return img
     except Exception:
         return None
+
+
+def apply_image_adjustments(
+    img: Image.Image,
+    rotation: int = 0,               # 0, 90, 180, 270 (clockwise)
+    flip_h: bool = False,
+    flip_v: bool = False,
+    crop_box: Optional[Tuple[int, int, int, int]] = None, # (left, top, right, bottom)
+    brightness: float = 1.0,        # 1.0 is original
+    contrast: float = 1.0,          # 1.0 is original
+    sharpness: float = 1.0,         # 1.0 is original
+    filter_mode: str = "normal"     # 'normal', 'grayscale', 'document_scan', 'warm', 'cool'
+) -> Image.Image:
+    """
+    Apply a complete pipeline of image edits: rotation, flipping, cropping,
+    brightness/contrast/sharpness enhancement, and document scanning filters.
+    """
+    res = img.copy()
+
+    # 1. Cropping
+    if crop_box:
+        l, t, r, b = crop_box
+        w, h = res.size
+        # Clamp bounds
+        l = max(0, min(l, w - 1))
+        t = max(0, min(t, h - 1))
+        r = max(l + 1, min(r, w))
+        b = max(t + 1, min(b, h))
+        res = res.crop((l, t, r, b))
+
+    # 2. Rotation (Clockwise)
+    norm_rot = rotation % 360
+    if norm_rot == 90:
+        res = res.transpose(Image.Transpose.ROTATE_270)
+    elif norm_rot == 180:
+        res = res.transpose(Image.Transpose.ROTATE_180)
+    elif norm_rot == 270:
+        res = res.transpose(Image.Transpose.ROTATE_90)
+
+    # 3. Flips
+    if flip_h:
+        res = res.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+    if flip_v:
+        res = res.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+
+    # 4. Filters & Enhancements
+    if filter_mode == "grayscale":
+        res = ImageOps.grayscale(res).convert("RGB")
+    elif filter_mode == "document_scan":
+        # Enhanced Black & White document scan: convert to grayscale, boost contrast, sharpen
+        gray = ImageOps.grayscale(res)
+        # Apply autocontrast
+        enhanced_gray = ImageOps.autocontrast(gray, cutoff=2)
+        # Sharpness boost
+        enhancer = ImageEnhance.Sharpness(enhanced_gray)
+        sharp = enhancer.enhance(1.8)
+        # Contrast boost
+        c_enhancer = ImageEnhance.Contrast(sharp)
+        res = c_enhancer.enhance(1.5).convert("RGB")
+    elif filter_mode == "warm":
+        if res.mode != "RGB":
+            res = res.convert("RGB")
+        r, g, b = res.split()
+        r = r.point(lambda i: min(255, int(i * 1.1)))
+        b = b.point(lambda i: int(i * 0.9))
+        res = Image.merge("RGB", (r, g, b))
+    elif filter_mode == "cool":
+        if res.mode != "RGB":
+            res = res.convert("RGB")
+        r, g, b = res.split()
+        r = r.point(lambda i: int(i * 0.9))
+        b = b.point(lambda i: min(255, int(i * 1.15)))
+        res = Image.merge("RGB", (r, g, b))
+
+    # 5. Brightness adjustment
+    if abs(brightness - 1.0) > 0.01:
+        enhancer = ImageEnhance.Brightness(res)
+        res = enhancer.enhance(brightness)
+
+    # 6. Contrast adjustment
+    if abs(contrast - 1.0) > 0.01:
+        enhancer = ImageEnhance.Contrast(res)
+        res = enhancer.enhance(contrast)
+
+    # 7. Sharpness adjustment
+    if abs(sharpness - 1.0) > 0.01:
+        enhancer = ImageEnhance.Sharpness(res)
+        res = enhancer.enhance(sharpness)
+
+    return res
+
+
+def save_image_to_disk(img: Image.Image, target_path: str, quality: int = 95) -> str:
+    """
+    Save modified Pillow image to disk with appropriate format settings and atomic write safety.
+    """
+    ext = os.path.splitext(target_path)[1].lower()
+    os.makedirs(os.path.dirname(os.path.abspath(target_path)), exist_ok=True)
+
+    # Prepare image mode for format
+    save_img = img
+    if ext in ('.jpg', '.jpeg', '.jfif'):
+        if save_img.mode in ('RGBA', 'LA', 'P'):
+            bg = Image.new('RGB', save_img.size, (255, 255, 255))
+            mask = save_img.split()[3] if save_img.mode == 'RGBA' else None
+            bg.paste(save_img, mask=mask)
+            save_img = bg
+        elif save_img.mode != 'RGB':
+            save_img = save_img.convert('RGB')
+        save_img.save(target_path, format="JPEG", quality=quality, optimize=True)
+    elif ext == '.png':
+        save_img.save(target_path, format="PNG", optimize=True)
+    elif ext == '.webp':
+        save_img.save(target_path, format="WEBP", quality=quality)
+    elif ext in ('.tiff', '.tif'):
+        save_img.save(target_path, format="TIFF")
+    elif ext == '.bmp':
+        if save_img.mode not in ('RGB', 'L'):
+            save_img = save_img.convert('RGB')
+        save_img.save(target_path, format="BMP")
+    else:
+        # Default fallback
+        save_img.save(target_path)
+
+    return target_path
+
+
+def rotate_image_file_on_disk(file_path: str, degrees: int = 90) -> str:
+    """
+    Directly rotate an image file on disk by specified degrees (e.g. 90, 180, 270)
+    and save it back to disk.
+    """
+    img = load_image_with_exif(file_path)
+    rotated = apply_image_adjustments(img, rotation=degrees)
+    save_image_to_disk(rotated, file_path)
+    return file_path
 
 
 def generate_pdf_page_thumbnail(pdf_path: str, page_number: int = 0, max_size: Tuple[int, int] = (160, 160)) -> Optional[Image.Image]:

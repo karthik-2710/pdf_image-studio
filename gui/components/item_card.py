@@ -22,6 +22,9 @@ class ItemCard(ctk.CTkFrame):
         on_move_up: Optional[Callable[[int], None]] = None,
         on_move_down: Optional[Callable[[int], None]] = None,
         on_rename: Optional[Callable[[Dict[str, Any]], None]] = None,
+        on_rotate_cw: Optional[Callable[[Dict[str, Any]], None]] = None,
+        on_rotate_ccw: Optional[Callable[[Dict[str, Any]], None]] = None,
+        on_edit: Optional[Callable[[Dict[str, Any]], None]] = None,
         on_remove: Optional[Callable[[Dict[str, Any]], None]] = None,
         on_delete: Optional[Callable[[Dict[str, Any]], None]] = None,
         is_pdf_page: bool = False,
@@ -39,6 +42,9 @@ class ItemCard(ctk.CTkFrame):
         self.on_move_up = on_move_up
         self.on_move_down = on_move_down
         self.on_rename = on_rename
+        self.on_rotate_cw = on_rotate_cw
+        self.on_rotate_ccw = on_rotate_ccw
+        self.on_edit = on_edit
         self.on_remove = on_remove
         self.on_delete = on_delete
 
@@ -101,7 +107,7 @@ class ItemCard(ctk.CTkFrame):
 
         # Filename
         filename = self.item_data.get("filename", os.path.basename(self.item_data.get("path", "")))
-        display_name = filename if len(filename) <= 38 else filename[:25] + "..." + filename[-10:]
+        display_name = filename if len(filename) <= 35 else filename[:22] + "..." + filename[-10:]
         
         self.name_label = ctk.CTkLabel(
             info_frame,
@@ -135,8 +141,8 @@ class ItemCard(ctk.CTkFrame):
         path_hint = self.item_data.get("path", "")
         if path_hint and not self.is_pdf_page:
             dir_hint = os.path.dirname(path_hint)
-            if len(dir_hint) > 45:
-                dir_hint = dir_hint[:20] + "..." + dir_hint[-22:]
+            if len(dir_hint) > 40:
+                dir_hint = dir_hint[:18] + "..." + dir_hint[-20:]
             self.path_label = ctk.CTkLabel(
                 info_frame,
                 text=dir_hint,
@@ -146,7 +152,7 @@ class ItemCard(ctk.CTkFrame):
             )
             self.path_label.pack(anchor="w")
 
-        # 4. Action Buttons (Preview, Move Up, Move Down, Rename, Remove, Delete)
+        # 4. Action Buttons (Preview, Rotate, Edit, Move Up, Move Down, Rename, Remove, Delete)
         action_frame = ctk.CTkFrame(self, fg_color="transparent")
         action_frame.grid(row=0, column=3, padx=(5, 12), pady=8, sticky="nse")
 
@@ -154,7 +160,7 @@ class ItemCard(ctk.CTkFrame):
         self.btn_preview = ctk.CTkButton(
             action_frame,
             text="👁 Preview",
-            width=70,
+            width=68,
             height=28,
             font=ctk.CTkFont(size=11),
             fg_color=("gray80", "gray25"),
@@ -162,9 +168,51 @@ class ItemCard(ctk.CTkFrame):
             hover_color=("gray70", "gray35"),
             command=self._handle_preview
         )
-        self.btn_preview.pack(side="left", padx=3)
+        self.btn_preview.pack(side="left", padx=2)
 
         if not self.is_pdf_page:
+            # Rotate CCW (Left)
+            self.btn_rot_ccw = ctk.CTkButton(
+                action_frame,
+                text="↺",
+                width=28,
+                height=28,
+                font=ctk.CTkFont(size=13),
+                fg_color=("gray80", "gray25"),
+                text_color=("gray10", "gray90"),
+                hover_color=("gray70", "gray35"),
+                command=lambda: self.on_rotate_ccw(self.item_data) if self.on_rotate_ccw else None
+            )
+            self.btn_rot_ccw.pack(side="left", padx=2)
+
+            # Rotate CW (Right)
+            self.btn_rot_cw = ctk.CTkButton(
+                action_frame,
+                text="↻",
+                width=28,
+                height=28,
+                font=ctk.CTkFont(size=13),
+                fg_color=("gray80", "gray25"),
+                text_color=("gray10", "gray90"),
+                hover_color=("gray70", "gray35"),
+                command=lambda: self.on_rotate_cw(self.item_data) if self.on_rotate_cw else None
+            )
+            self.btn_rot_cw.pack(side="left", padx=2)
+
+            # Edit Studio Button
+            self.btn_edit = ctk.CTkButton(
+                action_frame,
+                text="🎨 Edit",
+                width=55,
+                height=28,
+                font=ctk.CTkFont(size=11),
+                fg_color=("#0288d1", "#0277bd"),
+                text_color="white",
+                hover_color=("#0277bd", "#01579b"),
+                command=lambda: self.on_edit(self.item_data) if self.on_edit else None
+            )
+            self.btn_edit.pack(side="left", padx=2)
+
             # Reorder Up
             self.btn_up = ctk.CTkButton(
                 action_frame,
@@ -199,7 +247,7 @@ class ItemCard(ctk.CTkFrame):
             self.btn_rename = ctk.CTkButton(
                 action_frame,
                 text="✏ Rename",
-                width=72,
+                width=68,
                 height=28,
                 font=ctk.CTkFont(size=11),
                 fg_color=("#e0a800", "#b38600"),
@@ -207,7 +255,7 @@ class ItemCard(ctk.CTkFrame):
                 hover_color=("#cc9800", "#997300"),
                 command=lambda: self.on_rename(self.item_data) if self.on_rename else None
             )
-            self.btn_rename.pack(side="left", padx=3)
+            self.btn_rename.pack(side="left", padx=2)
 
             # Remove from queue (Non-destructive)
             self.btn_remove = ctk.CTkButton(
@@ -273,6 +321,18 @@ class ItemCard(ctk.CTkFrame):
     def _handle_preview(self):
         if self.on_preview:
             self.on_preview(self.item_data)
+
+    def reload_thumbnail(self):
+        """Reload thumbnail and metadata labels after an edit or rotation."""
+        self._load_thumbnail()
+        dims = self.item_data.get("dimensions", "Unknown")
+        size_str = self.item_data.get("size_formatted", "")
+        fmt = self.item_data.get("format", "")
+        if not self.is_pdf_page:
+            self.meta_label.configure(text=f"{fmt} • {dims} • {size_str}")
+            filename = self.item_data.get("filename", os.path.basename(self.item_data.get("path", "")))
+            display_name = filename if len(filename) <= 35 else filename[:22] + "..." + filename[-10:]
+            self.name_label.configure(text=display_name)
 
     def set_selected(self, selected: bool):
         self.check_var.set(selected)

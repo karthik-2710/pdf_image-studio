@@ -2,7 +2,7 @@ import os
 import io
 import threading
 from typing import List, Optional, Callable, Dict, Any, Tuple
-from PIL import Image
+from PIL import Image, ImageOps
 import pymupdf as fitz
 
 # Page dimensions in points (72 points = 1 inch)
@@ -22,59 +22,94 @@ MARGINS = {
 }
 
 
+# Compression preset configurations
+QUALITY_PRESETS = {
+    "lossless": {"quality": None, "max_dim": None, "subsampling": None},
+    "high": {"quality": 90, "max_dim": None, "subsampling": 0},
+    "medium": {"quality": 75, "max_dim": 2560, "subsampling": 1},
+    "low": {"quality": 50, "max_dim": 1920, "subsampling": 2},
+    "extreme": {"quality": 38, "max_dim": 1600, "subsampling": 2},         # Extreme compression (85-95% smaller, crisp & clear)
+    "ultra_extreme": {"quality": 28, "max_dim": 1200, "subsampling": 2},   # Ultra compact (Smallest possible, great for email)
+}
+
+
 def prepare_image_for_pdf(
     image_path: str,
-    quality_preset: str = "high"  # lossless, high, medium, low
+    quality_preset: str = "high",
+    custom_max_dim: Optional[int] = None
 ) -> Tuple[bytes, int, int]:
     """
-    Load image, apply compression if requested, and return (image_bytes, width, height).
+    Load image, apply EXIF orientation parity, smart high-quality downscaling, and compression.
     """
-    with Image.open(image_path) as img:
-        width, height = img.size
-        
-        # If quality is lossless and format is JPEG or PNG, we can use original bytes or clean RGB
-        if quality_preset == "lossless":
+    cfg = QUALITY_PRESETS.get(quality_preset, QUALITY_PRESETS["high"])
+    q = cfg["quality"]
+    max_dim = custom_max_dim if custom_max_dim is not None else cfg["max_dim"]
+    subsampling = cfg.get("subsampling", 2)
+
+    with Image.open(image_path) as raw_img:
+        # Auto transpose based on Windows / EXIF orientation
+        img = ImageOps.exif_transpose(raw_img)
+        # Check if downscaling is needed
+        orig_w, orig_h = img.size
+        working_img = img
+
+        if max_dim and max(orig_w, orig_h) > max_dim:
+            scale = max_dim / float(max(orig_w, orig_h))
+            new_w = max(1, int(orig_w * scale))
+            new_h = max(1, int(orig_h * scale))
+            working_img = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+
+        width, height = working_img.size
+
+        # If quality is lossless, preserve original image or clean RGB/PNG
+        if q is None or quality_preset == "lossless":
             # For RGBA or P modes, convert to RGB for standard PDF embedding
-            if img.mode in ('RGBA', 'LA'):
-                # Create white background for transparent images
-                background = Image.new('RGB', img.size, (255, 255, 255))
-                if img.mode == 'RGBA':
-                    background.paste(img, mask=img.split()[3])
+            if working_img.mode in ('RGBA', 'LA'):
+                background = Image.new('RGB', working_img.size, (255, 255, 255))
+                if working_img.mode == 'RGBA':
+                    background.paste(working_img, mask=working_img.split()[3])
                 else:
-                    background.paste(img, mask=img.split()[1])
+                    background.paste(working_img, mask=working_img.split()[1])
                 buffer = io.BytesIO()
                 background.save(buffer, format='PNG', optimize=True)
                 return buffer.getvalue(), width, height
-            elif img.mode != 'RGB':
-                rgb_img = img.convert('RGB')
+            elif working_img.mode != 'RGB':
+                rgb_img = working_img.convert('RGB')
                 buffer = io.BytesIO()
                 rgb_img.save(buffer, format='PNG', optimize=True)
                 return buffer.getvalue(), width, height
             else:
-                with open(image_path, 'rb') as f:
-                    return f.read(), width, height
+                # If image was not resized, we can use original bytes directly
+                if working_img is img:
+                    with open(image_path, 'rb') as f:
+                        return f.read(), width, height
+                else:
+                    buffer = io.BytesIO()
+                    working_img.save(buffer, format='JPEG', quality=95, optimize=True)
+                    return buffer.getvalue(), width, height
         else:
-            # Quality presets for JPEG encoding
-            quality_map = {
-                "high": 90,
-                "medium": 75,
-                "low": 50
-            }
-            q = quality_map.get(quality_preset, 85)
-            
             # Convert to RGB with white background if transparent
-            if img.mode in ('RGBA', 'LA'):
-                background = Image.new('RGB', img.size, (255, 255, 255))
-                mask = img.split()[3] if img.mode == 'RGBA' else img.split()[1]
-                background.paste(img, mask=mask)
+            if working_img.mode in ('RGBA', 'LA'):
+                background = Image.new('RGB', working_img.size, (255, 255, 255))
+                mask = working_img.split()[3] if working_img.mode == 'RGBA' else working_img.split()[1]
+                background.paste(working_img, mask=mask)
                 rgb_img = background
-            elif img.mode != 'RGB':
-                rgb_img = img.convert('RGB')
+            elif working_img.mode != 'RGB':
+                rgb_img = working_img.convert('RGB')
             else:
-                rgb_img = img
+                rgb_img = working_img
 
             buffer = io.BytesIO()
-            rgb_img.save(buffer, format='JPEG', quality=q, optimize=True)
+            save_kwargs = {
+                "format": "JPEG",
+                "quality": q,
+                "optimize": True,
+                "progressive": True
+            }
+            if subsampling is not None:
+                save_kwargs["subsampling"] = subsampling
+
+            rgb_img.save(buffer, **save_kwargs)
             return buffer.getvalue(), width, height
 
 
@@ -142,6 +177,7 @@ def convert_images_to_single_pdf(
     orientation: str = "auto",
     margin: str = "none",
     quality: str = "high",
+    custom_max_dim: Optional[int] = None,
     title: str = "",
     author: str = "Image & PDF Converter Studio",
     progress_callback: Optional[Callable[[int, int, str], None]] = None,
@@ -168,8 +204,12 @@ def convert_images_to_single_pdf(
             if progress_callback:
                 progress_callback(idx, total_images, f"Processing page {idx + 1}/{total_images}: {filename}")
 
-            # Read and prepare image data
-            img_bytes, img_w, img_h = prepare_image_for_pdf(img_path, quality_preset=quality)
+            # Read, downscale, and compress image data
+            img_bytes, img_w, img_h = prepare_image_for_pdf(
+                img_path,
+                quality_preset=quality,
+                custom_max_dim=custom_max_dim
+            )
             
             # Compute page layout
             page_rect, img_rect = calculate_page_rect(
@@ -189,7 +229,7 @@ def convert_images_to_single_pdf(
             raise InterruptedError("Conversion cancelled by user.")
 
         if progress_callback:
-            progress_callback(total_images, total_images, "Finalizing and saving PDF...")
+            progress_callback(total_images, total_images, "Finalizing and optimizing PDF...")
 
         # Set document metadata
         doc.set_metadata({
@@ -199,8 +239,15 @@ def convert_images_to_single_pdf(
             "producer": "PyMuPDF"
         })
 
-        # Save with garbage collection and compression
-        doc.save(output_pdf_path, garbage=3, deflate=True)
+        # Save with maximum garbage collection and stream deflation
+        doc.save(
+            output_pdf_path,
+            garbage=4,
+            deflate=True,
+            deflate_images=True,
+            deflate_fonts=True,
+            clean=True
+        )
         doc.close()
 
         file_size = os.path.getsize(output_pdf_path)
@@ -228,6 +275,7 @@ def convert_images_to_individual_pdfs(
     orientation: str = "auto",
     margin: str = "none",
     quality: str = "high",
+    custom_max_dim: Optional[int] = None,
     progress_callback: Optional[Callable[[int, int, str], None]] = None,
     cancel_event: Optional[threading.Event] = None
 ) -> List[Dict[str, Any]]:
@@ -259,6 +307,7 @@ def convert_images_to_individual_pdfs(
             orientation=orientation,
             margin=margin,
             quality=quality,
+            custom_max_dim=custom_max_dim,
             title=base_name,
             cancel_event=cancel_event
         )

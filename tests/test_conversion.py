@@ -14,7 +14,11 @@ from core.file_manager import (
     apply_batch_rename,
     safe_delete_file,
     is_valid_image_file,
-    is_valid_pdf_file
+    is_valid_pdf_file,
+    apply_image_adjustments,
+    rotate_image_file_on_disk,
+    save_image_to_disk,
+    load_image_with_exif
 )
 from core.img_to_pdf import (
     convert_images_to_single_pdf,
@@ -87,9 +91,42 @@ class TestImagePdfStudioCore(unittest.TestCase):
         pdf_meta = get_pdf_metadata(out_pdf)
         self.assertEqual(pdf_meta["page_count"], 3)
 
-        # Test PDF page thumbnail
         pdf_thumb = generate_pdf_page_thumbnail(out_pdf, page_number=0, max_size=(100, 100))
         self.assertIsNotNone(pdf_thumb)
+
+    def test_extreme_compression(self):
+        # Create a large high-res image
+        large_img_path = os.path.join(self.test_dir, "large.png")
+        large_img = Image.new("RGB", (3000, 2000), color=(100, 150, 200))
+        large_img.save(large_img_path)
+
+        out_normal = os.path.join(self.test_dir, "pdf_normal.pdf")
+        convert_images_to_single_pdf(
+            image_paths=[large_img_path],
+            output_pdf_path=out_normal,
+            quality="high"
+        )
+
+        out_extreme = os.path.join(self.test_dir, "pdf_extreme.pdf")
+        convert_images_to_single_pdf(
+            image_paths=[large_img_path],
+            output_pdf_path=out_extreme,
+            quality="extreme"
+        )
+
+        out_ultra = os.path.join(self.test_dir, "pdf_ultra.pdf")
+        convert_images_to_single_pdf(
+            image_paths=[large_img_path],
+            output_pdf_path=out_ultra,
+            quality="ultra_extreme"
+        )
+
+        size_normal = os.path.getsize(out_normal)
+        size_extreme = os.path.getsize(out_extreme)
+        size_ultra = os.path.getsize(out_ultra)
+
+        self.assertLess(size_extreme, size_normal)
+        self.assertLess(size_ultra, size_extreme)
 
     def test_pdf_to_img_conversion(self):
         # First generate a 3-page PDF
@@ -150,6 +187,33 @@ class TestImagePdfStudioCore(unittest.TestCase):
         deleted = safe_delete_file(self.img3_path)
         self.assertTrue(deleted)
         self.assertFalse(os.path.exists(self.img3_path))
+
+    def test_image_rotation_and_adjustments(self):
+        # 1. Test in-memory adjustments
+        with Image.open(self.img1_path) as im:
+            orig_w, orig_h = im.size  # 400x300
+            
+            # Rotate 90 degrees
+            rot90 = apply_image_adjustments(im, rotation=90)
+            self.assertEqual(rot90.size, (300, 400))
+
+            # Crop box
+            cropped = apply_image_adjustments(im, crop_box=(50, 50, 200, 150))
+            self.assertEqual(cropped.size, (150, 100))
+
+            # Filter grayscale
+            gray = apply_image_adjustments(im, filter_mode="grayscale")
+            self.assertEqual(gray.mode, "RGB")
+
+            # Document scan filter
+            doc_scan = apply_image_adjustments(im, filter_mode="document_scan")
+            self.assertEqual(doc_scan.mode, "RGB")
+
+        # 2. Test disk rotation
+        rotate_image_file_on_disk(self.img1_path, 90)
+        meta = get_image_metadata(self.img1_path)
+        self.assertEqual(meta["width"], 300)
+        self.assertEqual(meta["height"], 400)
 
 
 if __name__ == "__main__":
