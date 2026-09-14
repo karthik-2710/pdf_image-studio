@@ -403,15 +403,26 @@ class ItemCard(ctk.CTkFrame):
     def _handle_check_changed(self):
         self.is_selected = self.check_var.get()
         self.item_data["selected"] = self.is_selected
-        self._update_highlight()
+        self._update_selection_visual()
         if self.on_select:
             self.on_select(self.item_data, self.is_selected)
 
-    def _update_highlight(self):
+    def _update_selection_visual(self):
         if self.is_selected:
-            self.configure(border_color=BORDER_ACTIVE, border_width=2)
+            self.configure(
+                border_width=2,
+                border_color=BORDER_ACTIVE,
+                fg_color=BG_ACTIVE_ROW
+            )
         else:
-            self.configure(border_color=BORDER_CARD, border_width=1)
+            self.configure(
+                border_width=1,
+                border_color=BORDER_CARD,
+                fg_color=BG_CARD
+            )
+
+    def _update_highlight(self):
+        self._update_selection_visual()
 
     def _handle_preview(self):
         if self.on_preview:
@@ -435,4 +446,4 @@ class ItemCard(ctk.CTkFrame):
         self.check_var.set(selected)
         self.is_selected = selected
         self.item_data["selected"] = selected
-        self._update_highlight()
+        self._update_selection_visual()
