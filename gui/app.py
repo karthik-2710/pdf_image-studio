@@ -12,6 +12,8 @@ from gui.theme import (
     TEXT_MAIN,
     TEXT_MUTED,
     TEXT_DIM,
+    TEXT_SECTION,
+    BG_HOVER_ROW,
     ACCENT_EMERALD,
     ACCENT_EMERALD_HOVER,
     BTN_NEUTRAL_BG,
@@ -28,6 +30,7 @@ from gui.theme import (
     font_title,
     font_body,
     font_body_bold,
+    font_section_header,
     font_caption,
     font_caption_bold,
     font_badge
@@ -87,7 +90,7 @@ class App(ctk.CTk):
     def _build_sidebar(self):
         self.sidebar = ctk.CTkFrame(
             self,
-            width=236,
+            width=220,
             corner_radius=0,
             fg_color=BG_SIDEBAR,
             border_width=1,
@@ -98,10 +101,10 @@ class App(ctk.CTk):
         self.sidebar.grid_propagate(False)
 
         # ----------------------------------------------------
-        # Brand Header Card
+        # Brand Header
         # ----------------------------------------------------
         brand_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent")
-        brand_frame.grid(row=0, column=0, padx=16, pady=(20, 16), sticky="ew")
+        brand_frame.grid(row=0, column=0, padx=14, pady=(18, 14), sticky="ew")
 
         logo_row = ctk.CTkFrame(brand_frame, fg_color="transparent")
         logo_row.pack(anchor="w")
@@ -112,7 +115,7 @@ class App(ctk.CTk):
             font=font_brand(),
             text_color=ACCENT_EMERALD
         )
-        lbl_icon.pack(side="left", padx=(0, 6))
+        lbl_icon.pack(side="left", padx=(0, 5))
 
         lbl_logo = ctk.CTkLabel(
             logo_row,
@@ -129,18 +132,18 @@ class App(ctk.CTk):
             fg_color=("#ECFDF5", "#064E3B"),
             text_color=("#059669", "#34D399"),
             corner_radius=RADIUS_BADGE,
-            width=32,
-            height=18
+            width=30,
+            height=16
         )
-        pro_badge.pack(side="left", padx=(6, 0))
+        pro_badge.pack(side="left", padx=(5, 0))
 
         lbl_sub = ctk.CTkLabel(
             brand_frame,
-            text="Image ⇄ PDF Conversion Suite",
+            text="Conversion & Document Suite",
             font=font_caption(),
-            text_color=TEXT_MUTED
+            text_color=TEXT_DIM
         )
-        lbl_sub.pack(anchor="w", pady=(3, 0))
+        lbl_sub.pack(anchor="w", pady=(2, 0))
 
         # ----------------------------------------------------
         # Navigation Section
@@ -148,67 +151,61 @@ class App(ctk.CTk):
         lbl_nav_hdr = ctk.CTkLabel(
             self.sidebar,
             text="WORKSPACES",
-            font=font_badge(),
-            text_color=TEXT_DIM
+            font=font_section_header(),
+            text_color=TEXT_SECTION
         )
-        lbl_nav_hdr.grid(row=1, column=0, padx=18, pady=(8, 4), sticky="w")
+        lbl_nav_hdr.grid(row=1, column=0, padx=16, pady=(6, 4), sticky="w")
 
         # Navigation Buttons (Pill styling)
         self.btn_nav_img_to_pdf = ctk.CTkButton(
             self.sidebar,
-            text="🖼   Images to PDF",
-            height=40,
+            text="🖼  Images to PDF",
+            height=36,
             font=font_title(),
             anchor="w",
             corner_radius=RADIUS_BTN,
             command=lambda: self._show_tab("img_to_pdf")
         )
-        self.btn_nav_img_to_pdf.grid(row=2, column=0, padx=12, pady=3, sticky="ew")
+        self.btn_nav_img_to_pdf.grid(row=2, column=0, padx=10, pady=2, sticky="ew")
 
         self.btn_nav_pdf_to_img = ctk.CTkButton(
             self.sidebar,
-            text="📄   PDF to Images",
-            height=40,
+            text="📄  PDF to Images",
+            height=36,
             font=font_title(),
             anchor="w",
             corner_radius=RADIUS_BTN,
             command=lambda: self._show_tab("pdf_to_img")
         )
-        self.btn_nav_pdf_to_img.grid(row=3, column=0, padx=12, pady=3, sticky="ew")
+        self.btn_nav_pdf_to_img.grid(row=3, column=0, padx=10, pady=2, sticky="ew")
 
-        # Sidebar Separator
+        # Subtle Separator
         sep = ctk.CTkFrame(self.sidebar, height=1, fg_color=BORDER_SUBTLE)
-        sep.grid(row=4, column=0, padx=16, pady=14, sticky="ew")
+        sep.grid(row=4, column=0, padx=14, pady=12, sticky="ew")
 
         # ----------------------------------------------------
-        # Quick Features & Shortcuts Card
+        # Quick Features & Capabilities (Minimalist List)
         # ----------------------------------------------------
-        features_box = ctk.CTkFrame(
-            self.sidebar,
-            corner_radius=RADIUS_CARD,
-            fg_color=BTN_NEUTRAL_BG,
-            border_width=1,
-            border_color=BORDER_CARD
-        )
-        features_box.grid(row=5, column=0, padx=12, pady=4, sticky="nsew")
+        features_box = ctk.CTkFrame(self.sidebar, fg_color="transparent")
+        features_box.grid(row=5, column=0, padx=12, pady=2, sticky="nsew")
 
         ctk.CTkLabel(
             features_box,
-            text="⚡ Studio Highlights",
-            font=font_caption_bold(),
-            text_color=ACCENT_EMERALD
-        ).pack(anchor="w", padx=12, pady=(10, 6))
+            text="CAPABILITIES",
+            font=font_section_header(),
+            text_color=TEXT_SECTION
+        ).pack(anchor="w", padx=4, pady=(2, 6))
 
         features_list = [
-            ("🎨 Image Studio", "Rotate, crop & filters"),
-            ("⚡ Compression", "Extreme 90% size reduction"),
-            ("🏷 Batch Rename", "Pattern & sequence tools"),
-            ("🔍 DPI Controls", "72 up to 600 DPI output")
+            ("🎨 Photo Studio", "Crop, rotate & filters"),
+            ("⚡ 90% Compression", "Smart deflate & subsampling"),
+            ("🏷 Batch Rename", "Sequential & patterns"),
+            ("🔍 High DPI Output", "72 up to 600 DPI")
         ]
 
         for title, desc in features_list:
             item_row = ctk.CTkFrame(features_box, fg_color="transparent")
-            item_row.pack(fill="x", padx=10, pady=3)
+            item_row.pack(fill="x", padx=4, pady=3)
             ctk.CTkLabel(
                 item_row,
                 text=title,
@@ -220,7 +217,7 @@ class App(ctk.CTk):
                 item_row,
                 text=desc,
                 font=font_badge(),
-                text_color=TEXT_MUTED,
+                text_color=TEXT_DIM,
                 anchor="w"
             ).pack(anchor="w")
 
@@ -228,20 +225,23 @@ class App(ctk.CTk):
         # Bottom Appearance & System Footer
         # ----------------------------------------------------
         bottom_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent")
-        bottom_frame.grid(row=6, column=0, padx=12, pady=12, sticky="ew")
+        bottom_frame.grid(row=6, column=0, padx=12, pady=10, sticky="ew")
+
+        sep2 = ctk.CTkFrame(bottom_frame, height=1, fg_color=BORDER_SUBTLE)
+        sep2.pack(fill="x", pady=(0, 8))
 
         ctk.CTkLabel(
             bottom_frame,
             text="APPEARANCE",
-            font=font_badge(),
-            text_color=TEXT_DIM
-        ).pack(anchor="w", padx=4, pady=(0, 4))
+            font=font_section_header(),
+            text_color=TEXT_SECTION
+        ).pack(anchor="w", padx=2, pady=(0, 4))
 
         self.theme_menu = ctk.CTkOptionMenu(
             bottom_frame,
             values=["Dark", "Light", "System"],
             command=self._change_appearance_mode,
-            height=30,
+            height=28,
             font=font_caption(),
             fg_color=BTN_NEUTRAL_BG,
             text_color=TEXT_MAIN,
@@ -252,10 +252,10 @@ class App(ctk.CTk):
             corner_radius=RADIUS_INPUT
         )
         self.theme_menu.set("Dark")
-        self.theme_menu.pack(fill="x", padx=2, pady=(0, 8))
+        self.theme_menu.pack(fill="x", pady=(0, 8))
 
         status_row = ctk.CTkFrame(bottom_frame, fg_color="transparent")
-        status_row.pack(fill="x", padx=4)
+        status_row.pack(fill="x", padx=2)
 
         ctk.CTkLabel(
             status_row,

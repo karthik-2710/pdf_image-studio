@@ -27,6 +27,7 @@ from gui.theme import (
     TEXT_MAIN,
     TEXT_MUTED,
     TEXT_DIM,
+    TEXT_SECTION,
     TEXT_INVERSE,
     ACCENT_EMERALD,
     ACCENT_EMERALD_HOVER,
@@ -48,11 +49,16 @@ from gui.theme import (
     RADIUS_INPUT,
     RADIUS_PILL,
     RADIUS_BADGE,
+    HEIGHT_HERO_BTN,
+    HEIGHT_ACTION_BTN,
+    HEIGHT_INPUT,
     font_h1,
     font_h2,
     font_title,
     font_body,
     font_body_bold,
+    font_section_header,
+    font_hero_btn,
     font_caption,
     font_caption_bold,
     font_badge
@@ -94,14 +100,14 @@ class ImgToPdfTab(ctk.CTkFrame):
             border_width=1,
             border_color=BORDER_SUBTLE
         )
-        toolbar.grid(row=0, column=0, padx=16, pady=(16, 8), sticky="ew")
+        toolbar.grid(row=0, column=0, padx=16, pady=(14, 6), sticky="ew")
 
         # Left action buttons
         btn_add_files = ctk.CTkButton(
             toolbar,
             text="➕ Add Images",
             width=115,
-            height=34,
+            height=HEIGHT_ACTION_BTN,
             font=font_caption_bold(),
             fg_color=ACCENT_EMERALD,
             hover_color=ACCENT_EMERALD_HOVER,
@@ -109,13 +115,13 @@ class ImgToPdfTab(ctk.CTkFrame):
             corner_radius=RADIUS_BTN,
             command=self._choose_images
         )
-        btn_add_files.pack(side="left", padx=(12, 4), pady=8)
+        btn_add_files.pack(side="left", padx=(10, 4), pady=6)
 
         btn_add_folder = ctk.CTkButton(
             toolbar,
             text="📁 Add Folder",
-            width=105,
-            height=34,
+            width=100,
+            height=HEIGHT_ACTION_BTN,
             font=font_caption(),
             fg_color=BTN_NEUTRAL_BG,
             text_color=BTN_NEUTRAL_TEXT,
@@ -123,57 +129,61 @@ class ImgToPdfTab(ctk.CTkFrame):
             corner_radius=RADIUS_BTN,
             command=self._choose_folder
         )
-        btn_add_folder.pack(side="left", padx=3, pady=8)
+        btn_add_folder.pack(side="left", padx=2, pady=6)
+
+        # Subtle toolbar divider
+        tb_sep = ctk.CTkFrame(toolbar, width=1, height=20, fg_color=BORDER_SUBTLE)
+        tb_sep.pack(side="left", padx=6, pady=8)
 
         # Rotate Quick Action Buttons
         btn_rot_ccw_all = ctk.CTkButton(
             toolbar,
             text="↺ Rotate Left",
-            width=96,
-            height=34,
+            width=92,
+            height=HEIGHT_ACTION_BTN,
             font=font_caption(),
             fg_color=BTN_NEUTRAL_BG,
             text_color=BTN_NEUTRAL_TEXT,
-            hover_color=ACCENT_EMERALD_HOVER,
+            hover_color=BTN_NEUTRAL_HOVER,
             corner_radius=RADIUS_BTN,
             command=lambda: self._rotate_selected_images(270)
         )
-        btn_rot_ccw_all.pack(side="left", padx=3, pady=8)
+        btn_rot_ccw_all.pack(side="left", padx=2, pady=6)
 
         btn_rot_cw_all = ctk.CTkButton(
             toolbar,
             text="↻ Rotate Right",
-            width=102,
-            height=34,
+            width=96,
+            height=HEIGHT_ACTION_BTN,
             font=font_caption(),
             fg_color=BTN_NEUTRAL_BG,
             text_color=BTN_NEUTRAL_TEXT,
-            hover_color=ACCENT_EMERALD_HOVER,
+            hover_color=BTN_NEUTRAL_HOVER,
             corner_radius=RADIUS_BTN,
             command=lambda: self._rotate_selected_images(90)
         )
-        btn_rot_cw_all.pack(side="left", padx=3, pady=8)
+        btn_rot_cw_all.pack(side="left", padx=2, pady=6)
 
         btn_batch_rename = ctk.CTkButton(
             toolbar,
             text="🏷 Batch Rename",
-            width=115,
-            height=34,
+            width=110,
+            height=HEIGHT_ACTION_BTN,
             font=font_caption_bold(),
-            fg_color=ACCENT_AMBER,
-            text_color=TEXT_INVERSE,
-            hover_color=ACCENT_AMBER_HOVER,
+            fg_color=BTN_NEUTRAL_BG,
+            text_color=BTN_NEUTRAL_TEXT,
+            hover_color=ACCENT_AMBER,
             corner_radius=RADIUS_BTN,
             command=self._open_batch_rename
         )
-        btn_batch_rename.pack(side="left", padx=3, pady=8)
+        btn_batch_rename.pack(side="left", padx=2, pady=6)
 
         # Selection controls
         btn_select_all = ctk.CTkButton(
             toolbar,
             text="Select All",
-            width=75,
-            height=34,
+            width=70,
+            height=HEIGHT_ACTION_BTN,
             font=font_caption(),
             fg_color=BTN_NEUTRAL_BG,
             text_color=BTN_NEUTRAL_TEXT,
@@ -181,13 +191,13 @@ class ImgToPdfTab(ctk.CTkFrame):
             corner_radius=RADIUS_BTN,
             command=lambda: self._set_all_selected(True)
         )
-        btn_select_all.pack(side="left", padx=2, pady=8)
+        btn_select_all.pack(side="left", padx=2, pady=6)
 
         btn_deselect_all = ctk.CTkButton(
             toolbar,
             text="Deselect All",
-            width=82,
-            height=34,
+            width=78,
+            height=HEIGHT_ACTION_BTN,
             font=font_caption(),
             fg_color=BTN_NEUTRAL_BG,
             text_color=BTN_NEUTRAL_TEXT,
@@ -195,24 +205,24 @@ class ImgToPdfTab(ctk.CTkFrame):
             corner_radius=RADIUS_BTN,
             command=lambda: self._set_all_selected(False)
         )
-        btn_deselect_all.pack(side="left", padx=2, pady=8)
+        btn_deselect_all.pack(side="left", padx=2, pady=6)
 
         # Sort Dropdown
         ctk.CTkLabel(
             toolbar,
             text="Sort:",
             font=font_caption(),
-            text_color=TEXT_MUTED
+            text_color=TEXT_DIM
         ).pack(side="left", padx=(8, 2))
 
         self.sort_menu = ctk.CTkOptionMenu(
             toolbar,
             values=["Name (A-Z)", "Name (Z-A)", "Date (Newest)", "Date (Oldest)", "Size (Largest)", "Reverse Order"],
-            width=130,
-            height=32,
+            width=125,
+            height=30,
             font=font_caption(),
-            fg_color=BTN_NEUTRAL_BG,
-            text_color=BTN_NEUTRAL_TEXT,
+            fg_color=BG_INPUT,
+            text_color=TEXT_MAIN,
             button_color=BORDER_SUBTLE,
             button_hover_color=BORDER_CARD,
             dropdown_fg_color=BG_CARD,
@@ -220,25 +230,25 @@ class ImgToPdfTab(ctk.CTkFrame):
             corner_radius=RADIUS_INPUT,
             command=self._sort_queue
         )
-        self.sort_menu.pack(side="left", padx=2, pady=8)
+        self.sort_menu.pack(side="left", padx=2, pady=6)
 
         # Right utility buttons
         btn_clear = ctk.CTkButton(
             toolbar,
-            text="🧹 Clear All",
-            width=90,
-            height=34,
-            font=font_caption_bold(),
+            text="🧹 Clear",
+            width=76,
+            height=HEIGHT_ACTION_BTN,
+            font=font_caption(),
             fg_color=BTN_DANGER_BG,
             text_color=BTN_DANGER_TEXT,
             hover_color=BTN_DANGER_HOVER,
             corner_radius=RADIUS_BTN,
             command=self._clear_queue
         )
-        btn_clear.pack(side="right", padx=(5, 12), pady=8)
+        btn_clear.pack(side="right", padx=(4, 10), pady=6)
 
         # ----------------------------------------------------
-        # 2. Main Workspace: Split View (Queue List + Settings)
+        # 2. Main Workspace: Split View (Queue List + Inspector)
         # ----------------------------------------------------
         workspace = ctk.CTkFrame(self, fg_color="transparent")
         workspace.grid(row=1, column=0, padx=16, pady=4, sticky="nsew")
@@ -259,8 +269,8 @@ class ImgToPdfTab(ctk.CTkFrame):
         queue_container.grid_columnconfigure(0, weight=1)
 
         # Queue Subheader with count
-        q_hdr = ctk.CTkFrame(queue_container, height=42, fg_color="transparent")
-        q_hdr.grid(row=0, column=0, padx=14, pady=(10, 4), sticky="ew")
+        q_hdr = ctk.CTkFrame(queue_container, height=36, fg_color="transparent")
+        q_hdr.grid(row=0, column=0, padx=12, pady=(8, 2), sticky="ew")
 
         self.lbl_queue_count = ctk.CTkLabel(
             q_hdr,
@@ -276,16 +286,16 @@ class ImgToPdfTab(ctk.CTkFrame):
             font=font_caption(),
             text_color=ACCENT_EMERALD
         )
-        self.lbl_selected_count.pack(side="left", padx=8)
+        self.lbl_selected_count.pack(side="left", padx=6)
 
         # Scrollable Frame for Item Cards
         self.cards_scroll = ctk.CTkScrollableFrame(queue_container, fg_color="transparent")
-        self.cards_scroll.grid(row=1, column=0, padx=8, pady=8, sticky="nsew")
+        self.cards_scroll.grid(row=1, column=0, padx=6, pady=6, sticky="nsew")
 
         # Empty State Placeholder
         self._render_empty_state()
 
-        # RIGHT: Conversion Settings & Export Panel
+        # RIGHT: Conversion Settings & Export Inspector Panel
         settings_panel = ctk.CTkScrollableFrame(
             workspace,
             corner_radius=RADIUS_CONTAINER,
@@ -296,37 +306,41 @@ class ImgToPdfTab(ctk.CTkFrame):
         settings_panel.grid(row=0, column=1, sticky="nsew")
         settings_panel.grid_columnconfigure(0, weight=1)
 
+        # Inspector Title
         ctk.CTkLabel(
             settings_panel,
-            text="⚙ PDF Settings",
-            font=font_h1(),
+            text="PDF Settings",
+            font=font_h2(),
             text_color=TEXT_MAIN
-        ).pack(anchor="w", padx=12, pady=(12, 10))
+        ).pack(anchor="w", padx=12, pady=(10, 8))
 
-        # --- CARD 1: Page Geometry ---
-        sec_geom = ctk.CTkFrame(settings_panel, corner_radius=RADIUS_CARD, fg_color=BG_CARD_ALT, border_width=1, border_color=BORDER_CARD)
-        sec_geom.pack(fill="x", padx=6, pady=5)
-
-        ctk.CTkLabel(sec_geom, text="📐 Page Layout & Geometry", font=font_caption_bold(), text_color=TEXT_MAIN).pack(anchor="w", padx=10, pady=(8, 4))
+        # --- SECTION 1: PAGE SETUP ---
+        ctk.CTkLabel(
+            settings_panel,
+            text="PAGE SETUP",
+            font=font_section_header(),
+            text_color=TEXT_SECTION
+        ).pack(anchor="w", padx=12, pady=(6, 4))
 
         # Output Mode
-        ctk.CTkLabel(sec_geom, text="Output Mode:", font=font_caption(), text_color=TEXT_MUTED).pack(anchor="w", padx=10, pady=(2, 2))
+        ctk.CTkLabel(settings_panel, text="Output Mode", font=font_caption(), text_color=TEXT_MUTED).pack(anchor="w", padx=12, pady=(2, 2))
         self.opt_mode = ctk.CTkSegmentedButton(
-            sec_geom,
-            values=["Single Combined PDF", "Individual PDFs"],
+            settings_panel,
+            values=["Single PDF", "Individual PDFs"],
             font=font_caption_bold(),
             selected_color=ACCENT_EMERALD,
             selected_hover_color=ACCENT_EMERALD_HOVER,
             command=self._on_output_mode_change
         )
-        self.opt_mode.set("Single Combined PDF")
-        self.opt_mode.pack(fill="x", padx=10, pady=(0, 8))
+        self.opt_mode.set("Single PDF")
+        self.opt_mode.pack(fill="x", padx=12, pady=(0, 6))
 
         # Page Size
-        ctk.CTkLabel(sec_geom, text="Page Size:", font=font_caption(), text_color=TEXT_MUTED).pack(anchor="w", padx=10, pady=(2, 2))
+        ctk.CTkLabel(settings_panel, text="Page Size", font=font_caption(), text_color=TEXT_MUTED).pack(anchor="w", padx=12, pady=(2, 2))
         self.opt_page_size = ctk.CTkOptionMenu(
-            sec_geom,
+            settings_panel,
             values=["Fit to Image (Original)", "A4 (Standard Document)", "US Letter", "A3", "A5"],
+            height=HEIGHT_INPUT,
             font=font_caption(),
             fg_color=BG_INPUT,
             text_color=TEXT_MAIN,
@@ -336,13 +350,14 @@ class ImgToPdfTab(ctk.CTkFrame):
             corner_radius=RADIUS_INPUT
         )
         self.opt_page_size.set("Fit to Image (Original)")
-        self.opt_page_size.pack(fill="x", padx=10, pady=(0, 8))
+        self.opt_page_size.pack(fill="x", padx=12, pady=(0, 6))
 
         # Orientation
-        ctk.CTkLabel(sec_geom, text="Orientation:", font=font_caption(), text_color=TEXT_MUTED).pack(anchor="w", padx=10, pady=(2, 2))
+        ctk.CTkLabel(settings_panel, text="Orientation", font=font_caption(), text_color=TEXT_MUTED).pack(anchor="w", padx=12, pady=(2, 2))
         self.opt_orientation = ctk.CTkOptionMenu(
-            sec_geom,
+            settings_panel,
             values=["Auto (Match Image)", "Portrait", "Landscape"],
+            height=HEIGHT_INPUT,
             font=font_caption(),
             fg_color=BG_INPUT,
             text_color=TEXT_MAIN,
@@ -352,13 +367,14 @@ class ImgToPdfTab(ctk.CTkFrame):
             corner_radius=RADIUS_INPUT
         )
         self.opt_orientation.set("Auto (Match Image)")
-        self.opt_orientation.pack(fill="x", padx=10, pady=(0, 8))
+        self.opt_orientation.pack(fill="x", padx=12, pady=(0, 6))
 
         # Margins
-        ctk.CTkLabel(sec_geom, text="Margins:", font=font_caption(), text_color=TEXT_MUTED).pack(anchor="w", padx=10, pady=(2, 2))
+        ctk.CTkLabel(settings_panel, text="Margins", font=font_caption(), text_color=TEXT_MUTED).pack(anchor="w", padx=12, pady=(2, 2))
         self.opt_margin = ctk.CTkOptionMenu(
-            sec_geom,
+            settings_panel,
             values=["None (Edge-to-Edge)", "Small (0.25 in)", "Normal (0.5 in)", "Large (0.75 in)"],
+            height=HEIGHT_INPUT,
             font=font_caption(),
             fg_color=BG_INPUT,
             text_color=TEXT_MAIN,
@@ -368,26 +384,32 @@ class ImgToPdfTab(ctk.CTkFrame):
             corner_radius=RADIUS_INPUT
         )
         self.opt_margin.set("None (Edge-to-Edge)")
-        self.opt_margin.pack(fill="x", padx=10, pady=(0, 8))
+        self.opt_margin.pack(fill="x", padx=12, pady=(0, 10))
 
-        # --- CARD 2: Compression & Optimization ---
-        sec_comp = ctk.CTkFrame(settings_panel, corner_radius=RADIUS_CARD, fg_color=BG_CARD_ALT, border_width=1, border_color=BORDER_CARD)
-        sec_comp.pack(fill="x", padx=6, pady=5)
+        # Divider
+        ctk.CTkFrame(settings_panel, height=1, fg_color=BORDER_SUBTLE).pack(fill="x", padx=8, pady=4)
 
-        ctk.CTkLabel(sec_comp, text="⚡ Compression & Quality", font=font_caption_bold(), text_color=TEXT_MAIN).pack(anchor="w", padx=10, pady=(8, 4))
+        # --- SECTION 2: COMPRESSION & OPTIMIZATION ---
+        ctk.CTkLabel(
+            settings_panel,
+            text="COMPRESSION & QUALITY",
+            font=font_section_header(),
+            text_color=TEXT_SECTION
+        ).pack(anchor="w", padx=12, pady=(8, 4))
 
         # Quality Preset
-        ctk.CTkLabel(sec_comp, text="Quality Preset:", font=font_caption(), text_color=TEXT_MUTED).pack(anchor="w", padx=10, pady=(2, 2))
+        ctk.CTkLabel(settings_panel, text="Preset Profile", font=font_caption(), text_color=TEXT_MUTED).pack(anchor="w", padx=12, pady=(2, 2))
         self.opt_quality = ctk.CTkOptionMenu(
-            sec_comp,
+            settings_panel,
             values=[
                 "Extreme Compression (Tiny Size • Crisp Text)",
-                "Ultra Compact / Email (Smallest Size • Max Compression)",
+                "Ultra Compact / Email (Smallest Size)",
                 "High Quality (JPEG 90 - Standard)",
                 "Medium Quality (JPEG 75)",
                 "Low / Web Size (JPEG 50)",
-                "Lossless (Original Quality / No Compression)"
+                "Lossless (Original / No Compression)"
             ],
+            height=HEIGHT_INPUT,
             font=font_caption(),
             fg_color=BG_INPUT,
             text_color=TEXT_MAIN,
@@ -397,12 +419,12 @@ class ImgToPdfTab(ctk.CTkFrame):
             corner_radius=RADIUS_INPUT
         )
         self.opt_quality.set("High Quality (JPEG 90 - Standard)")
-        self.opt_quality.pack(fill="x", padx=10, pady=(0, 8))
+        self.opt_quality.pack(fill="x", padx=12, pady=(0, 6))
 
         # Max Resolution Limit
-        ctk.CTkLabel(sec_comp, text="Max Image Resolution:", font=font_caption(), text_color=TEXT_MUTED).pack(anchor="w", padx=10, pady=(2, 2))
+        ctk.CTkLabel(settings_panel, text="Max Image Resolution", font=font_caption(), text_color=TEXT_MUTED).pack(anchor="w", padx=12, pady=(2, 2))
         self.opt_max_dim = ctk.CTkOptionMenu(
-            sec_comp,
+            settings_panel,
             values=[
                 "Auto (Based on Quality Preset)",
                 "Full HD (Max 1920 px)",
@@ -411,6 +433,7 @@ class ImgToPdfTab(ctk.CTkFrame):
                 "Ultra Small (Max 1024 px)",
                 "Original Pixels (No Downscaling)"
             ],
+            height=HEIGHT_INPUT,
             font=font_caption(),
             fg_color=BG_INPUT,
             text_color=TEXT_MAIN,
@@ -420,39 +443,44 @@ class ImgToPdfTab(ctk.CTkFrame):
             corner_radius=RADIUS_INPUT
         )
         self.opt_max_dim.set("Auto (Based on Quality Preset)")
-        self.opt_max_dim.pack(fill="x", padx=10, pady=(0, 8))
+        self.opt_max_dim.pack(fill="x", padx=12, pady=(0, 10))
 
-        # --- CARD 3: Destination & Metadata ---
-        sec_dest = ctk.CTkFrame(settings_panel, corner_radius=RADIUS_CARD, fg_color=BG_CARD_ALT, border_width=1, border_color=BORDER_CARD)
-        sec_dest.pack(fill="x", padx=6, pady=5)
+        # Divider
+        ctk.CTkFrame(settings_panel, height=1, fg_color=BORDER_SUBTLE).pack(fill="x", padx=8, pady=4)
 
-        ctk.CTkLabel(sec_dest, text="💾 Destination & Output", font=font_caption_bold(), text_color=TEXT_MAIN).pack(anchor="w", padx=10, pady=(8, 4))
+        # --- SECTION 3: METADATA & OUTPUT ---
+        ctk.CTkLabel(
+            settings_panel,
+            text="METADATA & EXPORT",
+            font=font_section_header(),
+            text_color=TEXT_SECTION
+        ).pack(anchor="w", padx=12, pady=(8, 4))
 
         # PDF Document Title
-        ctk.CTkLabel(sec_dest, text="Document Title:", font=font_caption(), text_color=TEXT_MUTED).pack(anchor="w", padx=10, pady=(2, 2))
+        ctk.CTkLabel(settings_panel, text="Document Title", font=font_caption(), text_color=TEXT_MUTED).pack(anchor="w", padx=12, pady=(2, 2))
         self.entry_doc_title = ctk.CTkEntry(
-            sec_dest,
+            settings_panel,
             placeholder_text="e.g. My Document",
-            height=32,
+            height=HEIGHT_INPUT,
             font=font_caption(),
             fg_color=BG_INPUT,
             border_color=BORDER_SUBTLE,
             corner_radius=RADIUS_INPUT
         )
-        self.entry_doc_title.pack(fill="x", padx=10, pady=(0, 8))
+        self.entry_doc_title.pack(fill="x", padx=12, pady=(0, 6))
 
         # Output Target Picker
-        self.lbl_output_target = ctk.CTkLabel(sec_dest, text="Output PDF File:", font=font_caption(), text_color=TEXT_MUTED)
-        self.lbl_output_target.pack(anchor="w", padx=10, pady=(2, 2))
+        self.lbl_output_target = ctk.CTkLabel(settings_panel, text="Output Target", font=font_caption(), text_color=TEXT_MUTED)
+        self.lbl_output_target.pack(anchor="w", padx=12, pady=(2, 2))
 
-        target_row = ctk.CTkFrame(sec_dest, fg_color="transparent")
-        target_row.pack(fill="x", padx=10, pady=(0, 10))
+        target_row = ctk.CTkFrame(settings_panel, fg_color="transparent")
+        target_row.pack(fill="x", padx=12, pady=(0, 12))
         target_row.grid_columnconfigure(0, weight=1)
 
         self.entry_output_path = ctk.CTkEntry(
             target_row,
             placeholder_text="Choose destination...",
-            height=32,
+            height=HEIGHT_INPUT,
             font=font_caption(),
             fg_color=BG_INPUT,
             border_color=BORDER_SUBTLE,
@@ -464,7 +492,7 @@ class ImgToPdfTab(ctk.CTkFrame):
             target_row,
             text="📂 Browse",
             width=76,
-            height=32,
+            height=HEIGHT_INPUT,
             font=font_caption(),
             fg_color=BTN_NEUTRAL_BG,
             hover_color=BTN_NEUTRAL_HOVER,
@@ -475,7 +503,7 @@ class ImgToPdfTab(ctk.CTkFrame):
         self.btn_browse_output.grid(row=0, column=1)
 
         # ----------------------------------------------------
-        # 3. Bottom Progress Bar & Convert Action Bar
+        # 3. Bottom Persistent Conversion Action Dock
         # ----------------------------------------------------
         bottom_bar = ctk.CTkFrame(
             self,
@@ -484,42 +512,42 @@ class ImgToPdfTab(ctk.CTkFrame):
             border_width=1,
             border_color=BORDER_SUBTLE
         )
-        bottom_bar.grid(row=2, column=0, padx=16, pady=(8, 16), sticky="ew")
+        bottom_bar.grid(row=2, column=0, padx=16, pady=(6, 14), sticky="ew")
         bottom_bar.grid_columnconfigure(0, weight=1)
 
-        # Progress and Status display
+        # Progress and Status display (Left/Center)
         prog_frame = ctk.CTkFrame(bottom_bar, fg_color="transparent")
-        prog_frame.grid(row=0, column=0, padx=16, pady=10, sticky="ew")
+        prog_frame.grid(row=0, column=0, padx=16, pady=8, sticky="ew")
         prog_frame.grid_columnconfigure(0, weight=1)
 
         self.status_label = ctk.CTkLabel(
             prog_frame,
-            text="Ready. Select images and click '⚡ Convert to PDF'.",
+            text="🟢 Ready · Select images and click 'Convert to PDF'",
             font=font_caption(),
             text_color=TEXT_MUTED,
             anchor="w"
         )
-        self.status_label.grid(row=0, column=0, sticky="w", pady=(0, 4))
+        self.status_label.grid(row=0, column=0, sticky="w", pady=(0, 3))
 
         self.progress_bar = ctk.CTkProgressBar(
             prog_frame,
-            height=8,
+            height=6,
             progress_color=ACCENT_EMERALD,
             fg_color=BORDER_SUBTLE,
-            corner_radius=4
+            corner_radius=3
         )
         self.progress_bar.set(0.0)
         self.progress_bar.grid(row=1, column=0, sticky="ew")
 
-        # Action Buttons frame
+        # Action Buttons frame (Right)
         actions_frame = ctk.CTkFrame(bottom_bar, fg_color="transparent")
-        actions_frame.grid(row=0, column=1, padx=16, pady=10, sticky="e")
+        actions_frame.grid(row=0, column=1, padx=14, pady=8, sticky="e")
 
         self.btn_open_file = ctk.CTkButton(
             actions_frame,
             text="📄 Open PDF",
-            width=110,
-            height=38,
+            width=105,
+            height=HEIGHT_HERO_BTN,
             font=font_caption_bold(),
             fg_color=ACCENT_EMERALD_ACTIVE,
             hover_color=ACCENT_EMERALD_HOVER,
@@ -532,8 +560,8 @@ class ImgToPdfTab(ctk.CTkFrame):
         self.btn_open_folder = ctk.CTkButton(
             actions_frame,
             text="📁 Open Folder",
-            width=115,
-            height=38,
+            width=110,
+            height=HEIGHT_HERO_BTN,
             font=font_caption(),
             fg_color=BTN_NEUTRAL_BG,
             text_color=BTN_NEUTRAL_TEXT,
@@ -546,9 +574,9 @@ class ImgToPdfTab(ctk.CTkFrame):
         self.btn_convert = ctk.CTkButton(
             actions_frame,
             text="⚡ Convert to PDF",
-            width=180,
-            height=40,
-            font=font_title(),
+            width=185,
+            height=HEIGHT_HERO_BTN,
+            font=font_hero_btn(),
             fg_color=ACCENT_EMERALD,
             hover_color=ACCENT_EMERALD_HOVER,
             text_color=TEXT_INVERSE,
@@ -565,36 +593,49 @@ class ImgToPdfTab(ctk.CTkFrame):
             widget.destroy()
 
         empty_box = ctk.CTkFrame(self.cards_scroll, fg_color="transparent")
-        empty_box.pack(expand=True, pady=90)
+        empty_box.pack(expand=True, pady=70)
 
-        icon_badge = ctk.CTkLabel(
+        # Modern Icon Badge
+        icon_wrapper = ctk.CTkFrame(
             empty_box,
-            text="🖼",
-            font=ctk.CTkFont(size=42)
+            width=64,
+            height=64,
+            corner_radius=16,
+            fg_color=BTN_NEUTRAL_BG,
+            border_width=1,
+            border_color=BORDER_SUBTLE
         )
-        icon_badge.pack(pady=(0, 8))
+        icon_wrapper.pack(pady=(0, 10))
+        icon_wrapper.pack_propagate(False)
+
+        icon_label = ctk.CTkLabel(
+            icon_wrapper,
+            text="🖼",
+            font=ctk.CTkFont(size=28)
+        )
+        icon_label.place(relx=0.5, rely=0.5, anchor="center")
 
         ctk.CTkLabel(
             empty_box,
             text="Add Images to Build Your PDF",
-            font=font_h2(),
+            font=font_h1(),
             text_color=TEXT_MAIN
-        ).pack(pady=(0, 4))
+        ).pack(pady=(0, 3))
 
         ctk.CTkLabel(
             empty_box,
-            text="Select multiple images or entire directories. Reorder, rotate, crop, and compress with ease.",
+            text="Select multiple JPG, PNG, WEBP, or TIFF files to compile into a clean, optimized PDF.",
             font=font_caption(),
-            text_color=TEXT_MUTED
-        ).pack(pady=(0, 16))
+            text_color=TEXT_DIM
+        ).pack(pady=(0, 14))
 
         btn_row = ctk.CTkFrame(empty_box, fg_color="transparent")
         btn_row.pack()
 
         ctk.CTkButton(
             btn_row,
-            text="➕ Add Images",
-            width=120,
+            text="➕ Browse Images",
+            width=130,
             height=36,
             font=font_caption_bold(),
             fg_color=ACCENT_EMERALD,

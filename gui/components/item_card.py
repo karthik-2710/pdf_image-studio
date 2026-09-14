@@ -7,6 +7,7 @@ from core.file_manager import generate_image_thumbnail, generate_pdf_page_thumbn
 from gui.theme import (
     BG_CARD,
     BG_CARD_ALT,
+    BG_ACTIVE_ROW,
     BG_CONTAINER,
     BORDER_CARD,
     BORDER_SUBTLE,
@@ -244,12 +245,12 @@ class ItemCard(ctk.CTkFrame):
         self.btn_preview = ctk.CTkButton(
             action_frame,
             text="👁 Preview",
-            width=70,
+            width=68,
             height=28,
             font=font_caption_bold(),
-            fg_color=ACCENT_TEAL,
-            text_color=TEXT_INVERSE,
-            hover_color=ACCENT_TEAL_HOVER,
+            fg_color=BTN_NEUTRAL_BG,
+            text_color=BTN_NEUTRAL_TEXT,
+            hover_color=ACCENT_TEAL,
             corner_radius=RADIUS_BTN,
             command=self._handle_preview
         )
@@ -293,9 +294,9 @@ class ItemCard(ctk.CTkFrame):
                 width=56,
                 height=28,
                 font=font_caption_bold(),
-                fg_color=ACCENT_AMBER,
-                text_color=TEXT_INVERSE,
-                hover_color=ACCENT_AMBER_HOVER,
+                fg_color=BTN_NEUTRAL_BG,
+                text_color=BTN_NEUTRAL_TEXT,
+                hover_color=ACCENT_AMBER,
                 corner_radius=RADIUS_BTN,
                 command=lambda: self.on_edit(self.item_data) if self.on_edit else None
             )
@@ -305,7 +306,7 @@ class ItemCard(ctk.CTkFrame):
             self.btn_up = ctk.CTkButton(
                 action_frame,
                 text="▲",
-                width=28,
+                width=26,
                 height=28,
                 font=font_caption(),
                 fg_color=BTN_NEUTRAL_BG,
@@ -315,13 +316,13 @@ class ItemCard(ctk.CTkFrame):
                 state="normal" if self.index > 0 else "disabled",
                 command=lambda: self.on_move_up(self.index) if self.on_move_up else None
             )
-            self.btn_up.pack(side="left", padx=2)
+            self.btn_up.pack(side="left", padx=1)
 
             # Reorder Down
             self.btn_down = ctk.CTkButton(
                 action_frame,
                 text="▼",
-                width=28,
+                width=26,
                 height=28,
                 font=font_caption(),
                 fg_color=BTN_NEUTRAL_BG,
@@ -331,13 +332,13 @@ class ItemCard(ctk.CTkFrame):
                 state="normal" if self.index < self.total_items - 1 else "disabled",
                 command=lambda: self.on_move_down(self.index) if self.on_move_down else None
             )
-            self.btn_down.pack(side="left", padx=2)
+            self.btn_down.pack(side="left", padx=1)
 
             # Rename Button
             self.btn_rename = ctk.CTkButton(
                 action_frame,
-                text="✏ Rename",
-                width=70,
+                text="✏",
+                width=28,
                 height=28,
                 font=font_caption(),
                 fg_color=BTN_NEUTRAL_BG,
@@ -348,22 +349,22 @@ class ItemCard(ctk.CTkFrame):
             )
             self.btn_rename.pack(side="left", padx=2)
 
-            # Remove from queue (Non-destructive)
+            # Remove from queue Button
             self.btn_remove = ctk.CTkButton(
                 action_frame,
                 text="✕",
                 width=28,
                 height=28,
-                font=font_body_bold(),
+                font=font_caption_bold(),
                 fg_color=BTN_NEUTRAL_BG,
                 text_color=TEXT_MUTED,
-                hover_color=BTN_DANGER_BG,
+                hover_color=BTN_NEUTRAL_HOVER,
                 corner_radius=RADIUS_BTN,
                 command=lambda: self.on_remove(self.item_data) if self.on_remove else None
             )
             self.btn_remove.pack(side="left", padx=2)
 
-            # Delete from Disk (Permanent)
+            # Delete file from disk Button
             self.btn_delete = ctk.CTkButton(
                 action_frame,
                 text="🗑",
@@ -372,13 +373,14 @@ class ItemCard(ctk.CTkFrame):
                 font=font_caption(),
                 fg_color=BTN_DANGER_BG,
                 text_color=BTN_DANGER_TEXT,
-                hover_color=ACCENT_ROSE_HOVER,
+                hover_color=BTN_DANGER_HOVER,
                 corner_radius=RADIUS_BTN,
                 command=lambda: self.on_delete(self.item_data) if self.on_delete else None
             )
             self.btn_delete.pack(side="left", padx=2)
 
-        self._update_highlight()
+        # Set initial visual state based on selection
+        self._update_selection_visual()
 
     def _load_thumbnail(self):
         try:
