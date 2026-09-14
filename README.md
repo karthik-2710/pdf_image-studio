@@ -56,12 +56,18 @@ A fast, modern, and easy-to-use desktop application to convert **Images to PDF**
 
 ## 🚀 How to Run
 
-### Method 1: Double Click (Windows)
+### Method 1: Standalone Windows Executable (.exe)
+No Python installation required. Open the standalone folder and launch:
+```
+dist\PDF Studio Pro\PDF Studio Pro.exe
+```
+*(To build or rebuild the executable yourself, run: `python build_exe.py`)*
+
+### Method 2: 1-Click Batch Launcher
 Double click `run_app.bat` inside the `pdf-image-studio` folder.
 
-### Method 2: Command Line
+### Method 3: Command Line
 ```bash
-cd c:\Users\karthi\Documents\proji\pdf-image-studio
 python main.py
 ```
 
@@ -69,12 +75,12 @@ python main.py
 
 ## 📦 Requirements
 
-- Python 3.10+
+- Python 3.10+ (for source code runs)
 - Dependencies:
   ```bash
   pip install -r requirements.txt
   ```
-  *(Packages: `customtkinter`, `pymupdf`, `Pillow`, `img2pdf`)*
+  *(Packages: `customtkinter`, `pymupdf`, `Pillow`, `img2pdf`, `pyinstaller`)*
 
 ---
 
@@ -83,18 +89,24 @@ python main.py
 ```
 pdf-image-studio/
 ├── main.py                       # Application Entry Point
-├── run_app.bat                   # 1-Click Windows Launcher
+├── build_exe.py                  # Standalone Windows Executable Compiler
+├── run_app.bat                   # 1-Click Windows Batch Launcher
 ├── requirements.txt              # Python Dependencies
+├── assets/
+│   ├── app_icon.ico              # High-Res Windows Application Icon
+│   └── app_icon.png              # PNG Brand Asset
 ├── core/
-│   ├── file_manager.py           # Metadata, Thumbnail cache, Safe Rename, Batch Rename, Delete
-│   ├── img_to_pdf.py             # Image to PDF Conversion Engine
-│   └── pdf_to_img.py             # PDF to Images Rendering Engine
+│   ├── file_manager.py           # Metadata, Thumbnail cache, Safe Rename, Batch Rename, Disk Sync
+│   ├── img_to_pdf.py             # Image to PDF Conversion Engine (Extreme Compression, Layouts)
+│   └── pdf_to_img.py             # PDF to Images Rendering Engine (DPI Presets, Page Selection)
 ├── gui/
-│   ├── app.py                    # Main Window, Sidebar, Dark/Light Theme Handler
+│   ├── theme.py                  # Centralized Modern SaaS Design System & Color Tokens
+│   ├── app.py                    # Main Window Shell, Sidebar Navigation, Theme Switching
 │   ├── img_to_pdf_tab.py         # Images -> PDF Workspace & Queue UI
 │   ├── pdf_to_img_tab.py         # PDF -> Images Workspace & Page Browser UI
 │   └── components/
-│       ├── item_card.py          # Interactive Thumbnail Card with Quick Action Buttons
+│       ├── item_card.py          # Interactive Thumbnail Card with Quick Action Buttons & Glow
+│       ├── editor_modal.py       # In-App Image Editor with Disk Sync & Filter Adjustments
 │       ├── preview_modal.py      # High-Resolution Full Viewer Inspector
 │       └── rename_modal.py       # Single & Batch Rename Dialog with Live Preview
 └── tests/

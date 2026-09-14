@@ -6,12 +6,46 @@ from typing import Dict, Any, List, Optional, Callable
 import pymupdf as fitz
 
 from core.file_manager import get_image_metadata, get_pdf_metadata, load_image_with_exif, rotate_image_file_on_disk
+from gui.theme import (
+    BG_MODAL,
+    BG_CARD,
+    BG_CONTAINER,
+    BORDER_CARD,
+    BORDER_SUBTLE,
+    TEXT_MAIN,
+    TEXT_MUTED,
+    TEXT_DIM,
+    TEXT_INVERSE,
+    ACCENT_EMERALD,
+    ACCENT_EMERALD_HOVER,
+    ACCENT_TEAL,
+    ACCENT_TEAL_HOVER,
+    ACCENT_AMBER,
+    ACCENT_AMBER_HOVER,
+    BTN_NEUTRAL_BG,
+    BTN_NEUTRAL_HOVER,
+    BTN_NEUTRAL_TEXT,
+    RADIUS_MODAL,
+    RADIUS_CONTAINER,
+    RADIUS_CONTROL,
+    RADIUS_BTN,
+    RADIUS_PILL,
+    RADIUS_BADGE,
+    font_h2,
+    font_title,
+    font_body,
+    font_caption,
+    font_caption_bold,
+    font_badge,
+    font_mono
+)
 
 
 class PreviewModal(ctk.CTkToplevel):
     """
     Full-size image & PDF page inspector modal with zoom preview, detailed metadata,
     and quick rotation & editing tools.
+    Designed with unified design system tokens.
     """
 
     def __init__(
@@ -28,9 +62,10 @@ class PreviewModal(ctk.CTkToplevel):
         self.is_pdf_page = is_pdf_page
         self.on_item_updated = on_item_updated
 
-        self.title("🔍 Preview Inspector - Image & PDF Studio")
-        self.geometry("980x720")
-        self.minsize(780, 560)
+        self.title("🔍 Preview Inspector — PDF Studio Pro")
+        self.geometry("1000x740")
+        self.minsize(800, 580)
+        self.configure(fg_color=BG_MODAL)
 
         # Center on parent
         self.transient(parent)
@@ -50,25 +85,44 @@ class PreviewModal(ctk.CTkToplevel):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
 
+        # ----------------------------------------------------
         # 1. Header Bar
-        header = ctk.CTkFrame(self, height=50, corner_radius=0, fg_color=("gray85", "gray17"))
+        # ----------------------------------------------------
+        header = ctk.CTkFrame(
+            self,
+            height=52,
+            corner_radius=0,
+            fg_color=BG_CARD,
+            border_width=1,
+            border_color=BORDER_SUBTLE
+        )
         header.grid(row=0, column=0, sticky="ew")
         header.grid_columnconfigure(2, weight=1)
 
         self.btn_prev = ctk.CTkButton(
             header,
             text="◀ Previous",
-            width=85,
-            height=32,
+            width=90,
+            height=34,
+            font=font_caption(),
+            fg_color=BTN_NEUTRAL_BG,
+            text_color=BTN_NEUTRAL_TEXT,
+            hover_color=BTN_NEUTRAL_HOVER,
+            corner_radius=RADIUS_BTN,
             command=self._prev_item
         )
-        self.btn_prev.grid(row=0, column=0, padx=(10, 4), pady=8)
+        self.btn_prev.grid(row=0, column=0, padx=(12, 4), pady=8)
 
         self.btn_next = ctk.CTkButton(
             header,
             text="Next ▶",
-            width=85,
-            height=32,
+            width=90,
+            height=34,
+            font=font_caption(),
+            fg_color=BTN_NEUTRAL_BG,
+            text_color=BTN_NEUTRAL_TEXT,
+            hover_color=BTN_NEUTRAL_HOVER,
+            corner_radius=RADIUS_BTN,
             command=self._next_item
         )
         self.btn_next.grid(row=0, column=1, padx=4, pady=8)
@@ -76,7 +130,8 @@ class PreviewModal(ctk.CTkToplevel):
         self.title_label = ctk.CTkLabel(
             header,
             text="Preview",
-            font=ctk.CTkFont(size=14, weight="bold"),
+            font=font_title(),
+            text_color=TEXT_MAIN,
             anchor="center"
         )
         self.title_label.grid(row=0, column=2, padx=10, pady=8, sticky="ew")
@@ -86,9 +141,13 @@ class PreviewModal(ctk.CTkToplevel):
             btn_rot_l = ctk.CTkButton(
                 header,
                 text="↺ 90°",
-                width=55,
-                height=32,
-                font=ctk.CTkFont(size=12),
+                width=60,
+                height=34,
+                font=font_caption(),
+                fg_color=BTN_NEUTRAL_BG,
+                text_color=BTN_NEUTRAL_TEXT,
+                hover_color=ACCENT_EMERALD_HOVER,
+                corner_radius=RADIUS_BTN,
                 command=lambda: self._quick_rotate(-90)
             )
             btn_rot_l.grid(row=0, column=3, padx=3, pady=8)
@@ -96,9 +155,13 @@ class PreviewModal(ctk.CTkToplevel):
             btn_rot_r = ctk.CTkButton(
                 header,
                 text="↻ 90°",
-                width=55,
-                height=32,
-                font=ctk.CTkFont(size=12),
+                width=60,
+                height=34,
+                font=font_caption(),
+                fg_color=BTN_NEUTRAL_BG,
+                text_color=BTN_NEUTRAL_TEXT,
+                hover_color=ACCENT_EMERALD_HOVER,
+                corner_radius=RADIUS_BTN,
                 command=lambda: self._quick_rotate(90)
             )
             btn_rot_r.grid(row=0, column=4, padx=3, pady=8)
@@ -106,41 +169,91 @@ class PreviewModal(ctk.CTkToplevel):
             btn_edit = ctk.CTkButton(
                 header,
                 text="🎨 Edit...",
-                width=75,
-                height=32,
-                font=ctk.CTkFont(size=12, weight="bold"),
-                fg_color=("#0288d1", "#0277bd"),
+                width=85,
+                height=34,
+                font=font_caption_bold(),
+                fg_color=ACCENT_AMBER,
+                hover_color=ACCENT_AMBER_HOVER,
+                text_color=TEXT_INVERSE,
+                corner_radius=RADIUS_BTN,
                 command=self._open_editor
             )
-            btn_edit.grid(row=0, column=5, padx=(3, 10), pady=8)
+            btn_edit.grid(row=0, column=5, padx=(3, 12), pady=8)
 
-        # 2. Main Viewport (Image Canvas / Label)
-        self.viewport_frame = ctk.CTkFrame(self, fg_color=("gray95", "gray12"), corner_radius=8)
-        self.viewport_frame.grid(row=1, column=0, padx=15, pady=(10, 5), sticky="nsew")
+        # ----------------------------------------------------
+        # 2. Main Viewport (Canvas Frame)
+        # ----------------------------------------------------
+        self.viewport_frame = ctk.CTkFrame(
+            self,
+            fg_color=BG_CONTAINER,
+            corner_radius=RADIUS_CONTAINER,
+            border_width=1,
+            border_color=BORDER_CARD
+        )
+        self.viewport_frame.grid(row=1, column=0, padx=16, pady=(12, 6), sticky="nsew")
         self.viewport_frame.pack_propagate(False)
 
-        self.image_label = ctk.CTkLabel(self.viewport_frame, text="Loading preview...", text_color="gray50")
+        self.image_label = ctk.CTkLabel(
+            self.viewport_frame,
+            text="Loading preview...",
+            font=font_body(),
+            text_color=TEXT_MUTED
+        )
         self.image_label.pack(expand=True, fill="both")
 
+        # ----------------------------------------------------
         # 3. Footer / Metadata Details Bar
-        footer = ctk.CTkFrame(self, corner_radius=8, fg_color=("gray88", "gray17"))
-        footer.grid(row=2, column=0, padx=15, pady=(5, 12), sticky="ew")
+        # ----------------------------------------------------
+        footer = ctk.CTkFrame(
+            self,
+            corner_radius=RADIUS_CONTAINER,
+            fg_color=BG_CARD,
+            border_width=1,
+            border_color=BORDER_SUBTLE
+        )
+        footer.grid(row=2, column=0, padx=16, pady=(6, 16), sticky="ew")
         footer.grid_columnconfigure((0, 1, 2, 3), weight=1)
 
-        self.meta_dim = ctk.CTkLabel(footer, text="Resolution: -", font=ctk.CTkFont(size=11, weight="bold"))
-        self.meta_dim.grid(row=0, column=0, padx=8, pady=4, sticky="w")
+        self.meta_dim = ctk.CTkLabel(
+            footer,
+            text="Resolution: -",
+            font=font_caption_bold(),
+            text_color=TEXT_MAIN
+        )
+        self.meta_dim.grid(row=0, column=0, padx=12, pady=6, sticky="w")
 
-        self.meta_size = ctk.CTkLabel(footer, text="File Size: -", font=ctk.CTkFont(size=11))
-        self.meta_size.grid(row=0, column=1, padx=8, pady=4, sticky="w")
+        self.meta_size = ctk.CTkLabel(
+            footer,
+            text="File Size: -",
+            font=font_caption(),
+            text_color=TEXT_MUTED
+        )
+        self.meta_size.grid(row=0, column=1, padx=12, pady=6, sticky="w")
 
-        self.meta_fmt = ctk.CTkLabel(footer, text="Format: -", font=ctk.CTkFont(size=11))
-        self.meta_fmt.grid(row=0, column=2, padx=8, pady=4, sticky="w")
+        self.meta_fmt = ctk.CTkLabel(
+            footer,
+            text="Format: -",
+            font=font_caption(),
+            text_color=TEXT_MUTED
+        )
+        self.meta_fmt.grid(row=0, column=2, padx=12, pady=6, sticky="w")
 
-        self.meta_date = ctk.CTkLabel(footer, text="Modified: -", font=ctk.CTkFont(size=11), text_color="gray50")
-        self.meta_date.grid(row=0, column=3, padx=8, pady=4, sticky="e")
+        self.meta_date = ctk.CTkLabel(
+            footer,
+            text="Modified: -",
+            font=font_caption(),
+            text_color=TEXT_DIM
+        )
+        self.meta_date.grid(row=0, column=3, padx=12, pady=6, sticky="e")
 
-        self.meta_path = ctk.CTkLabel(footer, text="Path: -", font=ctk.CTkFont(size=10), text_color="gray50", anchor="w")
-        self.meta_path.grid(row=1, column=0, columnspan=4, padx=8, pady=(0, 4), sticky="w")
+        self.meta_path = ctk.CTkLabel(
+            footer,
+            text="Path: -",
+            font=font_badge(),
+            text_color=TEXT_DIM,
+            anchor="w"
+        )
+        self.meta_path.grid(row=1, column=0, columnspan=4, padx=12, pady=(0, 6), sticky="w")
 
     def _prev_item(self):
         if self.current_index > 0:
@@ -172,7 +285,7 @@ class PreviewModal(ctk.CTkToplevel):
             return
         from gui.components.editor_modal import EditorModal
         item = self.items[self.current_index]
-        
+
         def on_saved(updated_item, edited_img):
             self._load_current_item()
             if self.on_item_updated:
@@ -208,8 +321,8 @@ class PreviewModal(ctk.CTkToplevel):
                 pil_img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
                 doc.close()
 
-                # Scale to fit window viewport (max approx 880x520)
-                pil_img.thumbnail((880, 520), Image.Resampling.LANCZOS)
+                # Scale to fit window viewport (max approx 900x540)
+                pil_img.thumbnail((900, 540), Image.Resampling.LANCZOS)
                 self.preview_ctk_img = ctk.CTkImage(light_image=pil_img, dark_image=pil_img, size=(pil_img.width, pil_img.height))
                 self.image_label.configure(image=self.preview_ctk_img, text="")
 
@@ -238,7 +351,7 @@ class PreviewModal(ctk.CTkToplevel):
                 if display_img.mode not in ('RGB', 'RGBA'):
                     display_img = display_img.convert('RGBA')
 
-                display_img.thumbnail((880, 520), Image.Resampling.LANCZOS)
+                display_img.thumbnail((900, 540), Image.Resampling.LANCZOS)
                 self.preview_ctk_img = ctk.CTkImage(
                     light_image=display_img,
                     dark_image=display_img,
