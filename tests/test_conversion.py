@@ -94,6 +94,22 @@ class TestImagePdfStudioCore(unittest.TestCase):
         pdf_thumb = generate_pdf_page_thumbnail(out_pdf, page_number=0, max_size=(100, 100))
         self.assertIsNotNone(pdf_thumb)
 
+    def test_img_to_individual_pdfs_conversion(self):
+        out_dir = os.path.join(self.test_dir, "individual_pdfs")
+        results = convert_images_to_individual_pdfs(
+            image_paths=[self.img1_path, self.img2_path, self.img3_path],
+            output_directory=out_dir,
+            page_size="fit_image",
+            quality="high"
+        )
+        self.assertEqual(len(results), 3)
+        for res in results:
+            self.assertTrue(res["success"])
+            pdf_path = res["output_path"]
+            self.assertTrue(os.path.exists(pdf_path))
+            meta = get_pdf_metadata(pdf_path)
+            self.assertEqual(meta["page_count"], 1)
+
     def test_extreme_compression(self):
         # Create a large high-res image
         large_img_path = os.path.join(self.test_dir, "large.png")

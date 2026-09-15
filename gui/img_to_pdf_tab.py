@@ -886,7 +886,7 @@ class ImgToPdfTab(ctk.CTkFrame):
         self._refresh_queue_ui()
 
     def _on_output_mode_change(self, mode: str):
-        if mode == "Single Combined PDF":
+        if "Single" in mode:
             self.lbl_output_target.configure(text="Output PDF File:")
             cur_path = self.entry_output_path.get().strip()
             if cur_path and not cur_path.lower().endswith(".pdf"):
@@ -900,7 +900,7 @@ class ImgToPdfTab(ctk.CTkFrame):
                 self.entry_output_path.insert(0, os.path.dirname(cur_path))
 
     def _browse_output_target(self):
-        is_single = self.opt_mode.get() == "Single Combined PDF"
+        is_single = "Single" in self.opt_mode.get()
         if is_single:
             path = filedialog.asksaveasfilename(
                 title="Choose Output PDF Path",
@@ -992,7 +992,7 @@ class ImgToPdfTab(ctk.CTkFrame):
         # Run conversion in background thread
         def run():
             try:
-                if mode == "Single Combined PDF":
+                if "Single" in mode:
                     # Ensure .pdf extension
                     final_pdf = out_target if out_target.lower().endswith(".pdf") else f"{out_target}.pdf"
                     res = convert_images_to_single_pdf(
